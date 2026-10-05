@@ -1,0 +1,2577 @@
+<!DOCTYPE html>
+<html lang="en" class="overflow-x-hidden">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>JSG 30 | Inbox & Spam Monitor</title>
+  <!-- Mobile & PWA Configuration -->
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="JSG30Monitor">
+  <link rel="manifest" id="manifest-link" href="#">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    code, pre, .font-mono { font-family: 'JetBrains Mono', monospace; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .et-scroll-container { scroll-behavior: smooth; }
+    .donut-segment {
+      transition: stroke-dasharray 0.4s ease, stroke-width 0.2s ease, opacity 0.2s ease;
+      cursor: pointer;
+    }
+    .donut-segment:hover {
+      stroke-width: 26;
+      opacity: 0.9;
+    }
+    #snow-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased overflow-x-hidden w-full max-w-full relative">
+
+  <!-- Background Snowflake Canvas -->
+  <canvas id="snow-canvas"></canvas>
+
+  <!-- Browser Push Notification Permission Banner -->
+  <div id="browser-notif-banner" class="hidden bg-gradient-to-r from-amber-500 to-amber-600 text-white px-3 sm:px-4 py-2.5 text-xs font-medium flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-sm sticky top-0 z-50">
+    <div class="flex items-center gap-2 max-w-4xl">
+      <span class="text-base shrink-0">🔔</span>
+      <span class="leading-tight"><strong>Push Alerts:</strong> Native notifications showing <strong>ET Name &amp; Domain</strong> on Spam.</span>
+    </div>
+    <div class="flex items-center gap-2 self-end sm:self-auto shrink-0">
+      <button id="btn-banner-enable-notif" class="min-h-[36px] px-3 py-1 bg-white text-amber-900 hover:bg-amber-50 font-bold rounded-lg shadow-xs text-xs transition-colors">
+        Allow
+      </button>
+      <button id="btn-banner-dismiss-notif" class="min-h-[36px] min-w-[36px] px-2 py-1 text-white/80 hover:text-white font-bold flex items-center justify-center" title="Dismiss">
+        ✕
+      </button>
+    </div>
+  </div>
+
+  <!-- Top Navigation Header -->
+  <header class="border-b border-slate-200/80 bg-white/95 backdrop-blur-md sticky top-0 z-40 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 shadow-xs w-full">
+    <div class="max-w-[1600px] mx-auto flex flex-col gap-2.5">
+      <!-- Row 1: Brand & Status -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-600 flex items-center justify-center shadow-md shadow-indigo-500/20 shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline>
+              <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path>
+            </svg>
+          </div>
+          <div class="min-w-0">
+            <h1 class="text-sm sm:text-base md:text-lg font-bold text-slate-900 tracking-tight truncate">JSG 30 Inbox &amp; Spam Monitor</h1>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span id="badge-active-scope" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+                📅 Today's Mail
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                ⚡ 1 Domain = 1 Mail
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                📂 Active Account: JSG 30
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Security Toggle -->
+        <button id="btn-lock-toggle" class="min-h-[40px] px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-medium flex items-center gap-1.5 shrink-0" title="Admin Security Toggle">
+          <span id="lock-icon" class="text-xs">🔒</span>
+          <span id="lock-status-label" class="hidden sm:inline text-[11px] font-medium text-slate-600">Locked</span>
+        </button>
+      </div>
+
+      <!-- Row 2: Action Controls Toolbar -->
+      <div class="flex items-center justify-between gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+          <!-- Push Alert Config -->
+          <button id="btn-open-alerts-modal" class="min-h-[38px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-[11px] font-semibold shadow-xs transition-colors shrink-0">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
+            <span>Alerts</span>
+          </button>
+
+          <!-- Circular Countdown Timer (30s auto-sync) -->
+          <div class="min-h-[38px] flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 shadow-xs shrink-0">
+            <div class="relative w-5 h-5 flex items-center justify-center">
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#e2e8f0" stroke-width="3"></circle>
+                <circle id="countdown-circle" cx="18" cy="18" r="14" fill="none" stroke="#6366f1" stroke-width="3" stroke-dasharray="88" stroke-dashoffset="0" stroke-linecap="round" class="transition-all duration-1000"></circle>
+              </svg>
+              <span id="countdown-number" class="absolute text-[9px] font-bold text-slate-700">30</span>
+            </div>
+            <span id="countdown-status-text" class="text-[10px] text-slate-600 font-medium hidden sm:inline">Next Sync</span>
+          </div>
+
+          <!-- Pause / Resume Button -->
+          <button id="btn-toggle-timer" class="min-h-[38px] px-3 py-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-[11px] font-semibold flex items-center gap-1 shadow-xs transition-colors shrink-0">
+            <span id="timer-btn-icon">⏸</span>
+            <span id="timer-btn-text" class="hidden sm:inline">Pause</span>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <!-- Install PWA -->
+          <button id="btn-install-app" class="hidden min-h-[38px] px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold flex items-center gap-1 shadow-xs">
+            <span>Install</span>
+          </button>
+
+          <!-- Sync Yesterday -->
+          <button id="btn-sync-yesterday" class="min-h-[38px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-violet-300 bg-violet-50 hover:bg-violet-100 text-violet-800 text-[11px] font-semibold shadow-xs transition-all active:scale-95 shrink-0" title="Fetch yesterday's mail">
+            <svg id="yesterday-spinner" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span id="yesterday-btn-label">Yesterday</span>
+          </button>
+
+          <!-- Sync Now -->
+          <button id="btn-sync-now" class="min-h-[38px] flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold shadow-xs shadow-indigo-600/30 transition-all active:scale-95 shrink-0">
+            <svg id="sync-spinner" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+            </svg>
+            <span id="sync-btn-label">Sync</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tab Strip -->
+  <div class="border-b border-slate-200 bg-white/95 backdrop-blur-md px-3 sm:px-6 w-full z-20">
+    <div class="max-w-[1600px] mx-auto flex items-center justify-between">
+      <nav class="flex space-x-1 sm:space-x-3 py-1.5 overflow-x-auto no-scrollbar w-full">
+        <!-- Live Monitor -->
+        <button data-tab="live" class="tab-btn min-h-[40px] py-2 px-3 text-xs font-semibold border-b-2 border-indigo-600 text-indigo-600 flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
+          <svg class="w-3.5 h-3.5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>
+          <span id="tab-label-monitor">Cards</span>
+          <span id="badge-records-count" class="bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.2 rounded text-[10px] font-mono">0</span>
+        </button>
+
+        <!-- JSG 30 Google Sheet (Protected) -->
+        <button data-tab="jsg30" class="tab-btn min-h-[40px] py-2 px-3 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
+          <span class="tab-lock-indicator text-[10px]">🔒</span>
+          <span>JSG 30 Sheet</span>
+          <span id="badge-jsg30-count" class="bg-slate-100 text-slate-600 px-1.5 py-0.2 rounded text-[10px] font-mono">0</span>
+        </button>
+
+        <!-- Sync Terminal (Protected) -->
+        <button data-tab="terminal" class="tab-btn min-h-[40px] py-2 px-3 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
+          <span class="tab-lock-indicator text-[10px]">🔒</span>
+          <span>Logs</span>
+          <span id="terminal-live-dot" class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        </button>
+
+        <!-- Backend Reference (Protected) -->
+        <button data-tab="backend" class="tab-btn min-h-[40px] py-2 px-3 text-xs font-medium border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5 whitespace-nowrap shrink-0 transition-colors">
+          <span class="tab-lock-indicator text-[10px]">🔒</span>
+          <span>Daemon</span>
+        </button>
+      </nav>
+
+      <div class="hidden lg:flex items-center gap-1.5 text-[11px] text-slate-500 shrink-0">
+        <span>Polled:</span>
+        <span id="header-last-sync" class="font-mono text-slate-700 font-medium">Never</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="flex-1 p-3 sm:p-5 lg:p-6 max-w-[1600px] w-full mx-auto space-y-4 overflow-x-hidden relative z-10">
+
+    <!-- Metric Summary Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-4 w-full">
+      <!-- Total Mails (Unique Domains) -->
+      <div class="bg-white/90 backdrop-blur-xs border border-slate-200 rounded-xl p-3 sm:p-4 shadow-xs">
+        <span id="stat-total-title" class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">Total Mails</span>
+        <div class="mt-1 sm:mt-2 flex items-baseline justify-between">
+          <span id="stat-total" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">0</span>
+          <span class="text-[10px] text-slate-400 font-medium">Unique</span>
+        </div>
+        <p id="stat-total-subtitle" class="text-[10px] text-slate-400 mt-0.5 truncate">1 Domain = 1 Mail</p>
+      </div>
+
+      <!-- Inbox Placements -->
+      <div class="bg-emerald-50/70 backdrop-blur-xs border border-emerald-200/80 rounded-xl p-3 sm:p-4 shadow-xs">
+        <span class="text-[10px] sm:text-xs font-semibold text-emerald-700 uppercase tracking-wider flex items-center gap-1 truncate">
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          Inbox
+        </span>
+        <div class="mt-1 sm:mt-2 flex items-baseline justify-between">
+          <span id="stat-inbox" class="text-xl sm:text-2xl font-black text-emerald-600 tracking-tight">0</span>
+          <span id="stat-rate" class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded-full">0%</span>
+        </div>
+        <div class="w-full bg-emerald-100 h-1 rounded-full mt-1.5 overflow-hidden">
+          <div id="bar-inbox-rate" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Spam Placements -->
+      <div class="bg-rose-50/70 backdrop-blur-xs border border-rose-200 rounded-xl p-3 sm:p-4 shadow-xs">
+        <span class="text-[10px] sm:text-xs font-semibold text-rose-700 uppercase tracking-wider flex items-center gap-1 truncate">
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+          Spam
+        </span>
+        <div class="mt-1 sm:mt-2 flex items-baseline justify-between">
+          <span id="stat-spam" class="text-xl sm:text-2xl font-black text-rose-600 tracking-tight">0</span>
+          <span id="stat-spam-rate" class="text-[10px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded-full">0% Rate</span>
+        </div>
+        <div class="w-full bg-rose-100 h-1 rounded-full mt-1.5 overflow-hidden">
+          <div id="bar-spam-rate" class="bg-rose-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Cached JSG 30 Domains -->
+      <div class="bg-indigo-50/70 backdrop-blur-xs border border-indigo-200/80 rounded-xl p-3 sm:p-4 shadow-xs">
+        <span class="text-[10px] sm:text-xs font-semibold text-indigo-700 uppercase tracking-wider flex items-center gap-1 truncate">
+          <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          JSG 30 Domains
+        </span>
+        <div class="mt-1 sm:mt-2 flex items-baseline justify-between">
+          <span id="stat-sheet-count" class="text-xl sm:text-2xl font-black text-indigo-600 tracking-tight">0</span>
+          <span id="stat-mapped" class="text-[10px] font-semibold text-indigo-700 bg-indigo-100 px-1.5 py-0.2 rounded-full truncate">0 Map</span>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-0.5 truncate">Cached from JSG 30</p>
+      </div>
+
+      <!-- Active Seed Accounts -->
+      <div class="bg-white/90 backdrop-blur-xs border border-slate-200 rounded-xl p-3 sm:p-4 shadow-xs col-span-2 sm:col-span-2 lg:col-span-1">
+        <span class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider block truncate">Seeds (4 ACs)</span>
+        <div class="mt-1 sm:mt-2 flex items-baseline justify-between">
+          <span class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">4 / 4</span>
+          <div class="flex items-center gap-1">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span>
+          </div>
+        </div>
+        <p class="text-[10px] text-slate-400 mt-0.5 truncate">Incremental Delta Active</p>
+      </div>
+    </div>
+
+    <!-- TAB 1: LIVE MONITOR VIEW -->
+    <div id="tab-content-live" class="tab-pane space-y-3.5 w-full max-w-full">
+      <!-- Top Filter Bar -->
+      <div class="bg-white/90 backdrop-blur-xs border border-slate-200 rounded-xl p-3 sm:p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 w-full">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 w-full">
+          <!-- Search Input -->
+          <div class="relative flex-1 w-full min-w-0">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+            <input
+              id="search-input"
+              type="text"
+              placeholder="Search domain, ET, subject..."
+              class="w-full min-h-[40px] bg-white border border-slate-300 rounded-lg pl-8 pr-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors shadow-xs"
+            />
+          </div>
+
+          <!-- ET Name Filter Dropdown -->
+          <div class="w-full sm:w-auto min-w-0 sm:min-w-[170px]">
+            <select id="filter-et" class="w-full min-h-[40px] bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-xs truncate">
+              <option value="ALL">All ET Names</option>
+              <option value="MAPPED">Mapped ETs Only</option>
+              <option value="UNMAPPED">Unmapped Only</option>
+            </select>
+          </div>
+
+          <!-- Inboxing & Spam Filter -->
+          <div class="w-full sm:w-auto min-w-0 sm:min-w-[160px]">
+            <select id="filter-folder" class="w-full min-h-[40px] bg-white border border-slate-300 rounded-lg px-2.5 py-2 text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-xs truncate">
+              <option value="ALL">All Statuses</option>
+              <option value="HAS_SPAM">⚠️ Has Spam Placement</option>
+              <option value="ALL_INBOX">✓ 100% Inboxed (4 of 4)</option>
+              <option value="PARTIAL_INBOX">Partial Inbox (1 - 3)</option>
+              <option value="ZERO_INBOX">Zero Inbox (0 of 4)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Export CSV Button -->
+        <div class="flex items-center justify-end w-full md:w-auto shrink-0 pt-1 md:pt-0">
+          <button id="btn-export-csv" class="min-h-[40px] flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 shadow-xs transition-colors w-full md:w-auto">
+            <svg class="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Export CSV</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3-PANEL RESPONSIVE GRID LAYOUT -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start w-full">
+        
+        <!-- LEFT PANEL: ET SIDEBAR -->
+        <aside class="lg:col-span-3 bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl shadow-xs overflow-hidden flex flex-col max-h-[360px] lg:max-h-[820px] lg:sticky lg:top-24 w-full">
+          <div class="p-3 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm">🏷️</span>
+              <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">ET Directory</h3>
+            </div>
+            <span id="et-sidebar-count-badge" class="bg-indigo-100 text-indigo-700 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full">0</span>
+          </div>
+
+          <!-- Quick Sidebar Search -->
+          <div class="p-2 border-b border-slate-100 bg-white">
+            <input
+              id="sidebar-et-search"
+              type="text"
+              placeholder="Search ET name..."
+              class="w-full min-h-[38px] bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+          </div>
+
+          <!-- Smooth Scrollable ET List -->
+          <div id="et-sidebar-list" class="overflow-y-auto divide-y divide-slate-100 text-xs flex-1 et-scroll-container">
+            <div class="p-4 text-center text-slate-400 text-xs">Loading ET list...</div>
+          </div>
+        </aside>
+
+        <!-- CENTER PANEL: DOMAIN CARDS & ET VIEW -->
+        <section class="lg:col-span-6 space-y-4 min-w-0 w-full">
+          <div id="domain-cards-container" class="space-y-4 w-full max-w-full">
+            <div class="bg-white/90 backdrop-blur-xs border border-slate-200 rounded-xl p-8 sm:p-12 text-center text-slate-500 shadow-xs">
+              <div class="flex flex-col items-center justify-center gap-2">
+                <svg class="w-6 h-6 animate-spin text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+                <span class="text-xs text-slate-600 font-medium">Scanning mailboxes &amp; JSG 30...</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT PANEL: CIRCULAR DONUT CHART -->
+        <aside class="lg:col-span-3 bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl shadow-xs p-4 space-y-4 lg:sticky lg:top-24 w-full">
+          <div class="border-b border-slate-100 pb-2.5 flex items-center justify-between">
+            <div>
+              <h3 class="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📊</span>
+                <span>Inboxing Status</span>
+              </h3>
+              <p id="chart-et-title" class="text-[11px] text-slate-500 font-medium truncate mt-0.5">All Campaigns</p>
+            </div>
+            <span id="chart-total-count" class="bg-slate-100 text-slate-700 text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full">0 mails</span>
+          </div>
+
+          <!-- SVG Donut Chart Container -->
+          <div class="relative flex items-center justify-center py-2">
+            <svg id="inbox-donut-svg" class="w-44 h-44 sm:w-48 sm:h-48 transform -rotate-90" viewBox="0 0 200 200">
+              <circle cx="100" cy="100" r="70" fill="none" stroke="#f1f5f9" stroke-width="22"></circle>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+              <span id="chart-center-val" class="text-xl sm:text-2xl font-black text-slate-900">0</span>
+              <span id="chart-center-sub" class="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Unique Mails</span>
+            </div>
+          </div>
+
+          <!-- Dynamic Legend with Counts -->
+          <div id="chart-legend-container" class="space-y-2 text-xs pt-2 border-t border-slate-100"></div>
+        </aside>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: JSG 30 GOOGLE SHEET CACHE -->
+    <div id="tab-content-jsg30" class="tab-pane hidden space-y-4 w-full">
+      <div class="bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl p-3.5 sm:p-5 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200">
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              <svg class="w-4 h-4 text-indigo-600 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+              <span>JSG 30 Sheet Cache</span>
+            </h3>
+            <p class="text-[11px] text-slate-500 mt-0.5">
+              Account: <code class="text-indigo-600 font-semibold bg-indigo-50 px-1 py-0.2 rounded">JSG 30</code> (Extracting DATE &amp; Domain)
+            </p>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <button id="btn-open-paste-modal" class="min-h-[38px] flex-1 sm:flex-none px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 shadow-xs">
+              Quick Paste
+            </button>
+            <button id="btn-sync-sheet-now" class="min-h-[38px] flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs">
+              <svg id="sheet-sync-spinner" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+              <span>Sync JSG 30 Now</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label class="block text-[11px] font-semibold text-slate-700 mb-1">JSG 30 CSV URL</label>
+          <input
+            id="sheet-url-input"
+            type="text"
+            value="https://docs.google.com/spreadsheets/d/e/2PACX-1vRDONkWXwJe5JfNjDzlkoMRHd3OM8qMSogUrxx0lqUJRHftHyUqrOyWVkgYbbEO6jDJRGK2wCzxFJVA/pub?gid=0&amp;single=true&amp;output=csv"
+            class="w-full min-h-[38px] bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-800 focus:outline-none"
+          />
+          <div class="mt-1.5 flex flex-col sm:flex-row sm:items-center justify-between text-[10px] text-slate-500 gap-1">
+            <span class="truncate">Status: <strong id="sheet-status-text" class="text-slate-800">Ready</strong></span>
+            <span id="sheet-sync-time">Never synced</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+        <div class="p-3 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+          <span class="text-xs font-bold text-slate-800">Cached (<span id="sheet-table-count">0</span>)</span>
+          <span class="text-[10px] text-indigo-700 font-semibold bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">JSG 30 Active</span>
+        </div>
+        <div class="max-h-80 overflow-x-auto w-full no-scrollbar">
+          <table class="w-full text-left text-xs min-w-[320px]">
+            <thead class="bg-slate-100 text-slate-600 sticky top-0 border-b border-slate-200">
+              <tr>
+                <th class="py-2.5 px-3 font-semibold">Domain</th>
+                <th class="py-2.5 px-3 font-semibold">ET NAME / Source</th>
+                <th class="py-2.5 px-3 font-semibold">DATE</th>
+              </tr>
+            </thead>
+            <tbody id="sheet-mappings-tbody" class="divide-y divide-slate-200">
+              <tr>
+                <td colspan="3" class="py-6 text-center text-slate-500">No cached mappings loaded.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: DIAGNOSTIC TERMINAL -->
+    <div id="tab-content-terminal" class="tab-pane hidden space-y-4 w-full">
+      <div class="bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl shadow-xs overflow-hidden">
+        <div class="p-3 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-800">Live Diagnostic Logs</span>
+          <button id="btn-clear-logs" class="min-h-[36px] px-2 text-xs text-slate-600 hover:text-slate-900 underline font-medium">Clear</button>
+        </div>
+        <div id="terminal-logs-container" class="p-3 font-mono text-xs max-h-96 overflow-y-auto space-y-1.5 bg-slate-900 text-slate-200 break-all">
+          <div class="text-slate-400 italic">Monitoring diagnostics initialized...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: BACKEND REFERENCE -->
+    <div id="tab-content-backend" class="tab-pane hidden space-y-4 w-full">
+      <div class="bg-white/95 backdrop-blur-xs border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs space-y-3">
+        <h3 class="text-sm sm:text-base font-bold text-slate-900">24/7 Cloud Background Daemon</h3>
+        <p class="text-xs text-slate-500">Autonomous poller running every 30 seconds for JSG 30.</p>
+        <pre class="p-3 bg-slate-900 border border-slate-800 rounded-lg text-xs font-mono text-slate-200 overflow-x-auto leading-relaxed max-h-80">
+const axios = require('axios');
+const CLIENT_ID = process.env.CLIENT_ID;
+// Autonomous poller running every 30s for JSG 30
+        </pre>
+      </div>
+    </div>
+  </main>
+
+  <!-- PUSH NOTIFICATIONS CONFIGURATION MODAL -->
+  <div id="alerts-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm sm:max-w-md w-full p-4 sm:p-5 space-y-3.5 shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm">🔔</div>
+          <h4 class="text-sm sm:text-base font-bold text-slate-900">Alerts Configuration</h4>
+        </div>
+        <button id="btn-close-alerts-modal" class="min-h-[36px] min-w-[36px] text-slate-400 hover:text-slate-600 text-base font-bold p-1 flex items-center justify-center">✕</button>
+      </div>
+
+      <!-- Channel 1: Native Browser Push -->
+      <div class="p-3 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold text-slate-800 block">Browser Push Notifications</span>
+            <p class="text-[10px] text-slate-500">Desktop &amp; mobile banner popups</p>
+          </div>
+          <input id="toggle-browser-push" type="checkbox" class="w-5 h-5 text-indigo-600 rounded cursor-pointer" checked />
+        </div>
+        <button id="btn-request-browser-notif-modal" class="min-h-[38px] w-full py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">
+          Enable / Verify Permission
+        </button>
+      </div>
+
+      <!-- Channel 2: Mobile App Lock-Screen Push -->
+      <div class="p-3 rounded-xl border border-amber-200 bg-amber-50/50 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <div>
+            <span class="text-xs font-bold text-slate-800 block">ntfy Lock Screen Push</span>
+            <p class="text-[10px] text-slate-500">Android/iOS native lock screen alert</p>
+          </div>
+          <input id="toggle-mobile-push" type="checkbox" class="w-5 h-5 text-amber-600 rounded cursor-pointer" checked />
+        </div>
+
+        <div class="space-y-1">
+          <label class="block text-[10px] font-semibold text-slate-700">Topic (ntfy.sh)</label>
+          <div class="flex items-center gap-1">
+            <span class="text-xs font-mono text-slate-400 select-none">ntfy.sh/</span>
+            <input
+              id="input-ntfy-topic"
+              type="text"
+              value="ayush_spam_alerts_seed"
+              class="flex-1 min-w-0 min-h-[36px] bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-mono text-slate-800"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Channel 3: Audio Siren -->
+      <div class="p-3 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div>
+          <span class="text-xs font-bold text-slate-800 block">Audio Chime</span>
+          <p class="text-[10px] text-slate-500">Instant audio tone on spam detection</p>
+        </div>
+        <input id="toggle-audio-chime" type="checkbox" class="w-5 h-5 text-indigo-600 rounded cursor-pointer" checked />
+      </div>
+
+      <!-- Buttons -->
+      <div class="flex items-center justify-between pt-2 border-t border-slate-200 gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5">
+          <button id="btn-test-browser-notification" class="min-h-[36px] px-2.5 py-1 rounded-lg bg-indigo-100 text-xs font-semibold text-indigo-900">
+            Test Browser
+          </button>
+          <button id="btn-test-notification" class="min-h-[36px] px-2.5 py-1 rounded-lg bg-amber-100 text-xs font-semibold text-amber-900">
+            Test Mobile
+          </button>
+        </div>
+        <button id="btn-save-alerts-modal" class="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white">
+          Save Settings
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLOATING SPAM POPUP BANNER -->
+  <div id="spam-popup-alert" class="fixed top-14 right-3 left-3 sm:left-auto sm:right-5 sm:max-w-sm z-50 bg-rose-600 text-white p-3.5 rounded-2xl shadow-2xl border-2 border-rose-400 transform translate-y-full sm:translate-y-0 sm:translate-x-full opacity-0 transition-all duration-300 pointer-events-auto hidden">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🚨</span>
+        <div>
+          <h5 id="spam-popup-title" class="text-[10px] font-extrabold uppercase tracking-wider text-rose-100">Spam Placement Detected</h5>
+          <p id="spam-popup-et" class="text-xs sm:text-sm font-bold text-white truncate">ET: Example</p>
+        </div>
+      </div>
+      <button id="btn-close-spam-popup" class="min-h-[36px] min-w-[36px] text-white/80 hover:text-white text-sm font-bold p-1 flex items-center justify-center">✕</button>
+    </div>
+    <div class="mt-2 text-xs bg-rose-700/60 p-2 rounded-xl border border-rose-500/50 space-y-0.5">
+      <div class="truncate"><strong>Domain:</strong> <span id="spam-popup-domain" class="font-mono text-rose-100">example.com</span></div>
+      <div><strong>Mailbox:</strong> <span id="spam-popup-account" class="text-rose-100">ashwindelaycheck</span></div>
+      <div class="truncate"><strong>Subject:</strong> <span id="spam-popup-subject" class="text-rose-200">Test Email</span></div>
+    </div>
+  </div>
+
+  <!-- FLOATING TOAST -->
+  <div id="toast" class="fixed bottom-4 right-4 left-4 sm:left-auto sm:right-5 sm:max-w-xs z-50 bg-slate-900 text-white text-xs font-medium px-3.5 py-2 rounded-xl shadow-lg transform translate-y-12 opacity-0 transition-all duration-300 flex items-center gap-2 pointer-events-none">
+    <svg class="w-3.5 h-3.5 text-emerald-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span id="toast-message" class="truncate">Domain copied!</span>
+  </div>
+
+  <!-- PASSWORD MODAL -->
+  <div id="password-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-4">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-xs sm:max-w-sm w-full p-5 space-y-3.5 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h4 class="text-sm font-bold text-slate-900">Protected Tab Access</h4>
+        <button id="btn-close-password-modal" class="min-h-[36px] min-w-[36px] text-slate-400 text-sm font-bold p-1 flex items-center justify-center">✕</button>
+      </div>
+      <div>
+        <label class="block text-[11px] font-semibold text-slate-700 mb-1">Enter Password</label>
+        <input
+          id="password-input"
+          type="password"
+          placeholder="Password..."
+          class="w-full min-h-[40px] bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs text-slate-800 focus:outline-none"
+        />
+        <p id="password-error-msg" class="text-[11px] text-rose-600 mt-1 hidden font-medium">Incorrect password.</p>
+      </div>
+      <div class="flex justify-end gap-2 pt-1">
+        <button id="btn-cancel-password" class="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700">Cancel</button>
+        <button id="btn-submit-password" class="min-h-[38px] px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white shadow-xs">Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK PASTE CSV MODAL -->
+  <div id="paste-modal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden flex items-center justify-center p-3">
+    <div class="bg-white border border-slate-200 rounded-2xl max-w-sm sm:max-w-md w-full p-4 space-y-3 shadow-xl">
+      <div class="flex items-center justify-between">
+        <h4 id="paste-modal-title" class="text-xs sm:text-sm font-bold text-slate-900">Quick Paste JSG 30 CSV Data</h4>
+        <button id="btn-close-paste-modal" class="min-h-[36px] min-w-[36px] text-slate-400 hover:text-slate-600 text-sm font-bold flex items-center justify-center">✕</button>
+      </div>
+      <p class="text-[11px] text-slate-500">Expected Columns: <code class="text-indigo-600 font-semibold bg-indigo-50 px-1 py-0.2 rounded">Domain</code>, <code class="text-indigo-600 font-semibold bg-indigo-50 px-1 py-0.2 rounded">DATE</code></p>
+      <textarea
+        id="paste-textarea"
+        rows="6"
+        placeholder="Domain,DATE,ET NAME&#10;example.com,2026-10-05,Example Tech"
+        class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 font-mono text-xs text-slate-800 focus:outline-none"
+      ></textarea>
+      <div class="flex justify-end gap-2">
+        <button id="btn-cancel-paste" class="min-h-[38px] px-3.5 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700">Cancel</button>
+        <button id="btn-apply-paste" class="min-h-[38px] px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-xs font-semibold text-white shadow-xs">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- APP STATE & CREDENTIALS ---
+    const OAUTH_CLIENT_ID = "707901165841-938emg3s0i65g4j1nebqqf33kr65rblp.apps.googleusercontent.com";
+    const OAUTH_CLIENT_SECRET = "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";
+    const ADMIN_PASSWORD = "Ayush9793";
+
+    // Direct JSG 30 Published CSV URL
+    const JSG_30_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRDONkWXwJe5JfNjDzlkoMRHd3OM8qMSogUrxx0lqUJRHftHyUqrOyWVkgYbbEO6jDJRGK2wCzxFJVA/pub?gid=0&single=true&output=csv";
+
+    let isAdminUnlocked = false;
+    let pendingTabTarget = null;
+    let deferredPrompt = null;
+
+    const ACCOUNTS = [
+      { id: "acc_1", name: "ashwindelaycheck", type: "Opener", token: "1//0gufI0Kvut_L4CgYIARAAGBASNwF-L9IrCP4euif3CzkRhJnPmOiRCGAVFBisqIB1lyS8m_O6a8BwKA71fkbqQ90wnpn_HdLG-NA", status: "idle" },
+      { id: "acc_2", name: "kartikdelaycheck", type: "Opener", token: "1//0gG08sb6H3p89CgYIARAAGBASNwF-L9IrATWaA7E1Z7v1jdg0elGLrPSO4CA7sOtS3nCxoqhZQDK65EKJKdMXXV7gwVJQEas2HYw", status: "idle" },
+      { id: "acc_3", name: "newnonop5", type: "Non-Opener", token: "1//0gnjgHv0wY6UlCgYIARAAGBASNwF-L9IrSBpsc4M9nYr6hfOwSNX8f9kIa1BhONy6iL5OfQTEvYsdRRsYUBM5w6h555fAlc63-7k", status: "idle" },
+      { id: "acc_4", name: "ashwinkartiknonop1710", type: "Non-Opener", token: "1//0gIqfIxrmUeCyCgYIARAAGBASNwF-L9IrZtQJKhrc1ioUlyO95Lb2qyy98kAiNwsaboHBGXj1_kKqkWU7SN-kItXXB-ItUJ2PFe8", status: "idle" }
+    ];
+
+    let emailRecords = [];
+    const domainLookupMap = new Map(); // Dedicated JSG 30 Domain Map
+    const tokenCache = {};
+
+    let currentSyncScope = 'TODAY';
+    let selectedNormalizedET = 'ALL';
+    let selectedDonutCategory = 'ALL';
+    const expandedDomainCards = new Set();
+    const fetchedMessageCache = new Map();
+    const notifiedSpamIds = new Set(JSON.parse(localStorage.getItem('notified_spam_ids') || '[]'));
+
+    let notificationConfig = {
+      browserPush: true,
+      mobilePush: true,
+      ntfyTopic: localStorage.getItem('ayush_ntfy_topic') || 'ayush_spam_alerts_seed',
+      audioChime: true
+    };
+
+    let isSyncing = false;
+    let isAutoSyncEnabled = true;
+    let countdown = 30;
+    let countdownInterval = null;
+    let lastGlobalSync = null;
+
+    // --- DOMAIN & ET NORMALIZATION HELPERS ---
+    function normalizeDomain(domain) {
+      if (!domain) return '';
+      return String(domain).replace(/\s+/g, '').toLowerCase().trim();
+    }
+
+    function normalizeETName(name) {
+      if (!name) return 'UNMAPPED';
+      const clean = String(name).replace(/\s+/g, '').toUpperCase().trim();
+      return clean === '' ? 'UNMAPPED' : clean;
+    }
+
+    const etDisplayMap = new Map();
+
+    function registerETDisplay(name) {
+      if (!name) return;
+      const norm = normalizeETName(name);
+      if (norm === 'UNMAPPED') return;
+      if (!etDisplayMap.has(norm)) {
+        etDisplayMap.set(norm, name.trim());
+      }
+    }
+
+    function getETDisplayName(normKey) {
+      if (normKey === 'ALL') return 'All ET Names';
+      if (normKey === 'MAPPED') return 'Mapped ETs Only';
+      if (normKey === 'UNMAPPED') return 'Unmapped ETs';
+      return etDisplayMap.get(normKey) || normKey;
+    }
+
+    // --- DOMAIN DEDUPLICATION ENGINE ---
+    function getUniqueDomainUnits(recordsList, filterNormET = 'ALL') {
+      const targetRecords = recordsList.filter(rec => {
+        if (!rec.domain) return false;
+        const norm = rec.normalizedET || normalizeETName(rec.etName);
+        if (filterNormET === 'ALL') return true;
+        if (filterNormET === 'MAPPED') return norm !== 'UNMAPPED';
+        if (filterNormET === 'UNMAPPED') return norm === 'UNMAPPED';
+        return norm === filterNormET;
+      });
+
+      const domainMap = new Map();
+
+      targetRecords.forEach(rec => {
+        const normDom = rec.normalizedDomain || normalizeDomain(rec.domain);
+        if (!normDom) return;
+
+        if (!domainMap.has(normDom)) {
+          domainMap.set(normDom, {
+            domain: rec.domain || normDom,
+            normalizedDomain: normDom,
+            etName: rec.etName || 'JSG 30',
+            normalizedET: rec.normalizedET || normalizeETName(rec.etName),
+            latestTime: rec.detectionTime,
+            emails: [],
+            inboxAccounts: new Set(),
+            spamAccounts: new Set(),
+            hasSpam: false,
+            hasInbox: false
+          });
+        }
+
+        const unit = domainMap.get(normDom);
+        unit.emails.push(rec);
+
+        if (rec.detectionTime > unit.latestTime) {
+          unit.latestTime = rec.detectionTime;
+        }
+
+        if (rec.etName && rec.etName !== 'Unmapped') {
+          unit.etName = rec.etName;
+          unit.normalizedET = normalizeETName(rec.etName);
+        }
+
+        if (rec.folder === 'INBOX') {
+          unit.inboxAccounts.add(rec.accountName);
+          unit.hasInbox = true;
+        } else if (rec.folder === 'SPAM') {
+          unit.spamAccounts.add(rec.accountName);
+          unit.hasSpam = true;
+        }
+      });
+
+      return Array.from(domainMap.values()).sort((a, b) => b.latestTime.getTime() - a.latestTime.getTime());
+    }
+
+    // --- DOM REFERENCES ---
+    const countdownCircle = document.getElementById('countdown-circle');
+    const countdownNumber = document.getElementById('countdown-number');
+    const countdownStatusText = document.getElementById('countdown-status-text');
+    const btnToggleTimer = document.getElementById('btn-toggle-timer');
+    const timerBtnIcon = document.getElementById('timer-btn-icon');
+    const timerBtnText = document.getElementById('timer-btn-text');
+    const btnSyncNow = document.getElementById('btn-sync-now');
+    const syncSpinner = document.getElementById('sync-spinner');
+    const syncBtnLabel = document.getElementById('sync-btn-label');
+    const headerLastSync = document.getElementById('header-last-sync');
+
+    const badgeActiveScope = document.getElementById('badge-active-scope');
+    const btnSyncYesterday = document.getElementById('btn-sync-yesterday');
+    const yesterdaySpinner = document.getElementById('yesterday-spinner');
+    const yesterdayBtnLabel = document.getElementById('yesterday-btn-label');
+    const statTotalTitle = document.getElementById('stat-total-title');
+    const statTotalSubtitle = document.getElementById('stat-total-subtitle');
+    const tabLabelMonitor = document.getElementById('tab-label-monitor');
+
+    const statTotal = document.getElementById('stat-total');
+    const statInbox = document.getElementById('stat-inbox');
+    const statRate = document.getElementById('stat-rate');
+    const statSpam = document.getElementById('stat-spam');
+    const statSpamRate = document.getElementById('stat-spam-rate');
+    const barInboxRate = document.getElementById('bar-inbox-rate');
+    const barSpamRate = document.getElementById('bar-spam-rate');
+    const statSheetCount = document.getElementById('stat-sheet-count');
+    const statMapped = document.getElementById('stat-mapped');
+
+    const badgeRecordsCount = document.getElementById('badge-records-count');
+    const badgeJsg30Count = document.getElementById('badge-jsg30-count');
+    const domainCardsContainer = document.getElementById('domain-cards-container');
+    const searchInput = document.getElementById('search-input');
+    const filterFolder = document.getElementById('filter-folder');
+    const filterEt = document.getElementById('filter-et');
+    const btnExportCsv = document.getElementById('btn-export-csv');
+
+    // Sidebar & Chart DOM
+    const etSidebarList = document.getElementById('et-sidebar-list');
+    const etSidebarCountBadge = document.getElementById('et-sidebar-count-badge');
+    const sidebarEtSearch = document.getElementById('sidebar-et-search');
+    const inboxDonutSvg = document.getElementById('inbox-donut-svg');
+    const chartEtTitle = document.getElementById('chart-et-title');
+    const chartTotalCount = document.getElementById('chart-total-count');
+    const chartCenterVal = document.getElementById('chart-center-val');
+    const chartCenterSub = document.getElementById('chart-center-sub');
+    const chartLegendContainer = document.getElementById('chart-legend-container');
+
+    // JSG 30 Sheet Elements
+    const sheetUrlInput = document.getElementById('sheet-url-input');
+    const sheetStatusText = document.getElementById('sheet-status-text');
+    const sheetSyncTime = document.getElementById('sheet-sync-time');
+    const btnSyncSheetNow = document.getElementById('btn-sync-sheet-now');
+    const sheetSyncSpinner = document.getElementById('sheet-sync-spinner');
+    const sheetMappingsTbody = document.getElementById('sheet-mappings-tbody');
+    const sheetTableCount = document.getElementById('sheet-table-count');
+
+    const terminalLogsContainer = document.getElementById('terminal-logs-container');
+    const btnClearLogs = document.getElementById('btn-clear-logs');
+
+    // Alert Elements
+    const browserNotifBanner = document.getElementById('browser-notif-banner');
+    const btnBannerEnableNotif = document.getElementById('btn-banner-enable-notif');
+    const btnBannerDismissNotif = document.getElementById('btn-banner-dismiss-notif');
+    const btnOpenAlertsModal = document.getElementById('btn-open-alerts-modal');
+    const alertsModal = document.getElementById('alerts-modal');
+    const btnCloseAlertsModal = document.getElementById('btn-close-alerts-modal');
+    const btnSaveAlertsModal = document.getElementById('btn-save-alerts-modal');
+    const toggleBrowserPush = document.getElementById('toggle-browser-push');
+    const toggleMobilePush = document.getElementById('toggle-mobile-push');
+    const toggleAudioChime = document.getElementById('toggle-audio-chime');
+    const inputNtfyTopic = document.getElementById('input-ntfy-topic');
+    const btnTestBrowserNotification = document.getElementById('btn-test-browser-notification');
+    const btnTestNotification = document.getElementById('btn-test-notification');
+    const btnRequestBrowserNotifModal = document.getElementById('btn-request-browser-notif-modal');
+
+    // Floating Popup
+    const spamPopupAlert = document.getElementById('spam-popup-alert');
+    const spamPopupEt = document.getElementById('spam-popup-et');
+    const spamPopupDomain = document.getElementById('spam-popup-domain');
+    const spamPopupAccount = document.getElementById('spam-popup-account');
+    const spamPopupSubject = document.getElementById('spam-popup-subject');
+    const btnCloseSpamPopup = document.getElementById('btn-close-spam-popup');
+
+    // Password & Modals
+    const passwordModal = document.getElementById('password-modal');
+    const passwordInput = document.getElementById('password-input');
+    const passwordErrorMsg = document.getElementById('password-error-msg');
+    const btnSubmitPassword = document.getElementById('btn-submit-password');
+    const btnClosePasswordModal = document.getElementById('btn-close-password-modal');
+    const btnCancelPassword = document.getElementById('btn-cancel-password');
+    const btnLockToggle = document.getElementById('btn-lock-toggle');
+    const lockIcon = document.getElementById('lock-icon');
+    const lockStatusLabel = document.getElementById('lock-status-label');
+
+    const pasteModal = document.getElementById('paste-modal');
+    const pasteModalTitle = document.getElementById('paste-modal-title');
+    const btnOpenPasteModal = document.getElementById('btn-open-paste-modal');
+    const btnClosePasteModal = document.getElementById('btn-close-paste-modal');
+    const btnCancelPaste = document.getElementById('btn-cancel-paste');
+    const btnApplyPaste = document.getElementById('btn-apply-paste');
+    const pasteTextarea = document.getElementById('paste-textarea');
+
+    const btnInstallApp = document.getElementById('btn-install-app');
+    const toast = document.getElementById('toast');
+    const toastMessage = document.getElementById('toast-message');
+
+    // --- LIGHTWEIGHT CANVAS SNOWFLAKES ---
+    function initSnowBackground() {
+      const canvas = document.getElementById('snow-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) return;
+
+      let width = (canvas.width = window.innerWidth);
+      let height = (canvas.height = window.innerHeight);
+
+      const isMobile = width < 768;
+      const flakeCount = isMobile ? 20 : 45;
+
+      const flakes = [];
+      for (let i = 0; i < flakeCount; i++) {
+        flakes.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          r: Math.random() * 2 + 1,
+          speed: Math.random() * 0.6 + 0.3,
+          wind: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.4 + 0.15
+        });
+      }
+
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+
+      function renderSnow() {
+        ctx.clearRect(0, 0, width, height);
+        for (let i = 0; i < flakeCount; i++) {
+          const f = flakes[i];
+          ctx.beginPath();
+          ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(148, 163, 184, ${f.opacity})`;
+          ctx.fill();
+
+          f.y += f.speed;
+          f.x += f.wind;
+
+          if (f.y > height) {
+            f.y = -5;
+            f.x = Math.random() * width;
+          }
+          if (f.x > width) f.x = 0;
+          if (f.x < 0) f.x = width;
+        }
+        requestAnimationFrame(renderSnow);
+      }
+      renderSnow();
+    }
+
+    // --- PWA SETUP ---
+    function setupPwa() {
+      const manifest = {
+        name: "JSG 30 Inbox & Spam Monitor",
+        short_name: "JSG30Monitor",
+        start_url: window.location.href,
+        display: "standalone",
+        background_color: "#ffffff",
+        theme_color: "#4f46e5",
+        icons: [{
+          src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%234f46e5'/><text y='65' x='50' text-anchor='middle' font-size='50' fill='white'>✉</text></svg>",
+          sizes: "192x192 512x512",
+          type: "image/svg+xml"
+        }]
+      };
+      const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+      document.getElementById('manifest-link').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        btnInstallApp.classList.remove('hidden');
+      });
+
+      btnInstallApp.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            btnInstallApp.classList.add('hidden');
+            showToast('App installed successfully!');
+          }
+          deferredPrompt = null;
+        } else {
+          showToast('To install: open browser menu and select "Install App" or "Add to Home Screen"');
+        }
+      });
+    }
+
+    // --- CLIPBOARD & TOAST ---
+    function showToast(msg) {
+      toastMessage.textContent = msg;
+      toast.classList.remove('translate-y-12', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      setTimeout(() => {
+        toast.classList.add('translate-y-12', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2500);
+    }
+
+    function copyDomainText(domain, btnElement) {
+      if (!domain) return;
+      const tempInput = document.createElement('textarea');
+      tempInput.value = domain;
+      tempInput.style.position = 'fixed';
+      tempInput.style.left = '-9999px';
+      document.body.appendChild(tempInput);
+      tempInput.focus();
+      tempInput.select();
+
+      let success = false;
+      try {
+        success = document.execCommand('copy');
+      } catch (err) {
+        console.error(err);
+      }
+      document.body.removeChild(tempInput);
+
+      if (success) {
+        showToast(`Copied: ${domain}`);
+        if (btnElement) {
+          const originalContent = btnElement.innerHTML;
+          btnElement.innerHTML = `
+            <svg class="w-3 h-3 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span class="text-[9px] text-emerald-700 font-bold">Done</span>
+          `;
+          btnElement.classList.add('bg-emerald-100', 'border-emerald-300');
+          setTimeout(() => {
+            btnElement.innerHTML = originalContent;
+            btnElement.classList.remove('bg-emerald-100', 'border-emerald-300');
+          }, 1500);
+        }
+      }
+    }
+
+    // --- AUDIO & PUSH ---
+    function playSpamAudioChime() {
+      if (!notificationConfig.audioChime) return;
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.35);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.35);
+      } catch (e) {}
+    }
+
+    async function dispatchMobileNtfyPush(title, message, priority = 'urgent') {
+      if (!notificationConfig.mobilePush) return;
+      const topic = notificationConfig.ntfyTopic || 'ayush_spam_alerts_seed';
+      try {
+        await fetch(`https://ntfy.sh/${topic}`, {
+          method: 'POST',
+          body: message,
+          headers: {
+            'Title': title,
+            'Priority': priority,
+            'Tags': 'warning,email'
+          }
+        });
+        addLog(`[Mobile Push] Sent to ntfy.sh/${topic}`, 'success');
+      } catch (err) {
+        addLog(`[Mobile Push Error] ${err.message}`, 'warn');
+      }
+    }
+
+    function dispatchBrowserNotification(title, message, options = {}) {
+      if (!notificationConfig.browserPush) return;
+      if (!('Notification' in window)) return;
+
+      if (Notification.permission === 'granted') {
+        try {
+          const notif = new Notification(title, {
+            body: message,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23e11d48"/><text y="65" x="50" text-anchor="middle" font-size="50" fill="white">⚠</text></svg>',
+            tag: options.tag || 'spam_alert',
+            renotify: true,
+            silent: false
+          });
+
+          notif.onclick = function() {
+            window.focus();
+            this.close();
+          };
+        } catch (err) {}
+      } else if (Notification.permission === 'default') {
+        checkBrowserNotificationPermission();
+      }
+    }
+
+    function showInAppSpamPopup(etName, domain, account, subject) {
+      if (!spamPopupAlert) return;
+      spamPopupEt.textContent = `ET: ${etName !== 'Unmapped' ? etName : 'JSG 30'}`;
+      spamPopupDomain.textContent = domain || 'N/A';
+      spamPopupAccount.textContent = account || 'Seed Account';
+      spamPopupSubject.textContent = subject || '(No Subject)';
+
+      spamPopupAlert.classList.remove('hidden');
+      setTimeout(() => {
+        spamPopupAlert.classList.remove('translate-y-full', 'sm:translate-x-full', 'opacity-0');
+        spamPopupAlert.classList.add('translate-y-0', 'sm:translate-x-0', 'opacity-100');
+      }, 20);
+
+      setTimeout(() => {
+        spamPopupAlert.classList.add('translate-y-full', 'sm:translate-x-full', 'opacity-0');
+        spamPopupAlert.classList.remove('translate-y-0', 'sm:translate-x-0', 'opacity-100');
+        setTimeout(() => spamPopupAlert.classList.add('hidden'), 300);
+      }, 8000);
+    }
+
+    if (btnCloseSpamPopup) {
+      btnCloseSpamPopup.addEventListener('click', () => {
+        spamPopupAlert.classList.add('translate-y-full', 'sm:translate-x-full', 'opacity-0');
+        spamPopupAlert.classList.remove('translate-y-0', 'sm:translate-x-0', 'opacity-100');
+        setTimeout(() => spamPopupAlert.classList.add('hidden'), 300);
+      });
+    }
+
+    function checkBrowserNotificationPermission() {
+      if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+          browserNotifBanner.classList.remove('hidden');
+        } else {
+          browserNotifBanner.classList.add('hidden');
+        }
+      }
+    }
+
+    async function requestBrowserPermission() {
+      if ('Notification' in window) {
+        const perm = await Notification.requestPermission();
+        browserNotifBanner.classList.add('hidden');
+        if (perm === 'granted') {
+          showToast('Browser notifications enabled!');
+          addLog('[Browser Push] Permission granted', 'success');
+        }
+      }
+    }
+
+    btnBannerEnableNotif.addEventListener('click', requestBrowserPermission);
+    btnRequestBrowserNotifModal.addEventListener('click', requestBrowserPermission);
+    btnBannerDismissNotif.addEventListener('click', () => {
+      browserNotifBanner.classList.add('hidden');
+    });
+
+    function notifySpamDetected(item) {
+      if (notifiedSpamIds.has(item.id)) return;
+      notifiedSpamIds.add(item.id);
+      
+      if (notifiedSpamIds.size > 500) {
+        const arr = Array.from(notifiedSpamIds).slice(-300);
+        notifiedSpamIds.clear();
+        arr.forEach(id => notifiedSpamIds.add(id));
+      }
+      localStorage.setItem('notified_spam_ids', JSON.stringify(Array.from(notifiedSpamIds)));
+
+      const displayEtName = item.etName && item.etName !== 'Unmapped' ? item.etName : 'JSG 30';
+      const displayDomain = item.domain || 'Unknown Domain';
+
+      const title = `🚨 SPAM: ${displayEtName} (${displayDomain})`;
+      const body = `• ET: ${displayEtName}\n• Domain: ${displayDomain}\n• Seed: ${item.accountName}\n• Subj: ${item.subject || '(No Subject)'}`;
+
+      playSpamAudioChime();
+      dispatchBrowserNotification(title, body, { tag: `spam_${item.id}` });
+      dispatchMobileNtfyPush(title, body, 'urgent');
+      showInAppSpamPopup(displayEtName, displayDomain, item.accountName, item.subject);
+      showToast(`🚨 Spam: ${displayEtName} (${displayDomain})`);
+      addLog(`[Spam Alert] Push for ${displayEtName} | ${displayDomain}`, 'warn');
+    }
+
+    // --- PASSWORD CONTROLS ---
+    function openPasswordModal(targetTab) {
+      pendingTabTarget = targetTab;
+      passwordInput.value = '';
+      passwordErrorMsg.classList.add('hidden');
+      passwordModal.classList.remove('hidden');
+      setTimeout(() => passwordInput.focus(), 50);
+    }
+
+    function closePasswordModal() {
+      passwordModal.classList.add('hidden');
+      pendingTabTarget = null;
+    }
+
+    function verifyPassword() {
+      const entered = passwordInput.value;
+      if (entered === ADMIN_PASSWORD) {
+        isAdminUnlocked = true;
+        updateLockUI();
+        closePasswordModal();
+        showToast('Administrative tabs unlocked');
+        if (pendingTabTarget) {
+          switchToTab(pendingTabTarget);
+          pendingTabTarget = null;
+        }
+      } else {
+        passwordErrorMsg.classList.remove('hidden');
+      }
+    }
+
+    function updateLockUI() {
+      const indicators = document.querySelectorAll('.tab-lock-indicator');
+      if (isAdminUnlocked) {
+        indicators.forEach(el => el.textContent = '🔓');
+        lockIcon.textContent = '🔓';
+        lockStatusLabel.textContent = 'Unlocked';
+        btnLockToggle.classList.replace('bg-slate-100', 'bg-emerald-50');
+        btnLockToggle.classList.replace('border-slate-200', 'border-emerald-200');
+        btnLockToggle.classList.add('text-emerald-700');
+      } else {
+        indicators.forEach(el => el.textContent = '🔒');
+        lockIcon.textContent = '🔒';
+        lockStatusLabel.textContent = 'Locked';
+        btnLockToggle.classList.remove('bg-emerald-50', 'border-emerald-200', 'text-emerald-700');
+        btnLockToggle.classList.add('bg-slate-100', 'border-slate-200');
+      }
+    }
+
+    btnLockToggle.addEventListener('click', () => {
+      if (isAdminUnlocked) {
+        isAdminUnlocked = false;
+        updateLockUI();
+        switchToTab('live');
+        showToast('Administrative tabs locked');
+      } else {
+        openPasswordModal(null);
+      }
+    });
+
+    btnSubmitPassword.addEventListener('click', verifyPassword);
+    passwordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') verifyPassword();
+    });
+    btnClosePasswordModal.addEventListener('click', closePasswordModal);
+    btnCancelPassword.addEventListener('click', closePasswordModal);
+
+    function switchToTab(target) {
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.remove('border-indigo-600', 'text-indigo-600');
+        b.classList.add('border-transparent', 'text-slate-500');
+      });
+
+      const activeBtn = document.querySelector(`[data-tab="${target}"]`);
+      if (activeBtn) {
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
+        activeBtn.classList.add('border-indigo-600', 'text-indigo-600');
+      }
+
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('hidden'));
+      const activePane = document.getElementById(`tab-content-${target}`);
+      if (activePane) activePane.classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-tab');
+        if (target === 'live') {
+          switchToTab('live');
+        } else {
+          if (isAdminUnlocked) {
+            switchToTab(target);
+          } else {
+            openPasswordModal(target);
+          }
+        }
+      });
+    });
+
+    function addLog(msg, level = 'info') {
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = 'flex items-start gap-1.5 leading-relaxed text-[11px]';
+      
+      let colorClass = 'text-slate-200';
+      if (level === 'error') colorClass = 'text-rose-400 font-semibold';
+      else if (level === 'warn') colorClass = 'text-amber-400';
+      else if (level === 'success') colorClass = 'text-emerald-400 font-semibold';
+
+      div.innerHTML = `
+        <span class="text-slate-500 select-none shrink-0">[${time}]</span>
+        <span class="break-all ${colorClass}">${escapeHtml(msg)}</span>
+      `;
+      terminalLogsContainer.prepend(div);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function parseCsvLine(text) {
+      const result = [];
+      let cur = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          inQuotes = !inQuotes;
+        } else if (c === ',' && !inQuotes) {
+          result.push(cur.trim().replace(/^"|"$/g, ''));
+          cur = '';
+        } else {
+          cur += c;
+        }
+      }
+      result.push(cur.trim().replace(/^"|"$/g, ''));
+      return result;
+    }
+
+    function extractDomain(sender) {
+      if (!sender) return '';
+      const emailMatch = sender.match(/<([^>]+)>/) || sender.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+      const email = emailMatch ? emailMatch[1] : sender;
+      const parts = email.split('@');
+      return normalizeDomain(parts.length > 1 ? parts[1] : email);
+    }
+
+    function resolveEtName(domain) {
+      if (!domain) return 'JSG 30';
+      const clean = normalizeDomain(domain);
+      
+      if (domainLookupMap.has(clean)) return domainLookupMap.get(clean).etName;
+
+      const parts = clean.split('.');
+      if (parts.length > 2) {
+        const root = parts.slice(-2).join('.');
+        if (domainLookupMap.has(root)) return domainLookupMap.get(root).etName;
+      }
+      return 'JSG 30';
+    }
+
+    // --- POPULATE SIDEBAR ---
+    function renderETSidebar() {
+      if (!etSidebarList) return;
+      const filterSearch = (sidebarEtSearch ? sidebarEtSearch.value : '').toLowerCase().trim();
+
+      const etUniqueDomainCount = new Map();
+      const allUniqueDomains = getUniqueDomainUnits(emailRecords, 'ALL');
+      let totalMappedUniqueDomains = 0;
+      let unmappedUniqueDomains = 0;
+
+      allUniqueDomains.forEach(unit => {
+        const norm = unit.normalizedET;
+        if (norm === 'UNMAPPED') {
+          unmappedUniqueDomains++;
+        } else {
+          totalMappedUniqueDomains++;
+          etUniqueDomainCount.set(norm, (etUniqueDomainCount.get(norm) || 0) + 1);
+        }
+      });
+
+      const sortedNormETs = Array.from(etUniqueDomainCount.keys()).sort((a, b) => {
+        return getETDisplayName(a).localeCompare(getETDisplayName(b));
+      });
+
+      etSidebarCountBadge.textContent = sortedNormETs.length;
+
+      let html = `
+        <button type="button" data-et-norm="ALL" class="et-sidebar-item min-h-[44px] w-full text-left px-3 py-2 flex items-center justify-between transition-colors ${selectedNormalizedET === 'ALL' ? 'bg-indigo-50 font-bold text-indigo-700 border-l-4 border-indigo-600' : 'hover:bg-slate-50 text-slate-700'}">
+          <span class="truncate">🌟 All ET Campaigns</span>
+          <span class="bg-slate-100 text-slate-600 text-[10px] font-mono px-2 py-0.5 rounded-full">${allUniqueDomains.length}</span>
+        </button>
+        <button type="button" data-et-norm="MAPPED" class="et-sidebar-item min-h-[44px] w-full text-left px-3 py-2 flex items-center justify-between transition-colors ${selectedNormalizedET === 'MAPPED' ? 'bg-indigo-50 font-bold text-indigo-700 border-l-4 border-indigo-600' : 'hover:bg-slate-50 text-slate-700'}">
+          <span class="truncate">📌 Mapped ETs Only</span>
+          <span class="bg-indigo-100 text-indigo-700 text-[10px] font-mono px-2 py-0.5 rounded-full">${totalMappedUniqueDomains}</span>
+        </button>
+      `;
+
+      if (unmappedUniqueDomains > 0) {
+        html += `
+          <button type="button" data-et-norm="UNMAPPED" class="et-sidebar-item min-h-[44px] w-full text-left px-3 py-2 flex items-center justify-between transition-colors ${selectedNormalizedET === 'UNMAPPED' ? 'bg-indigo-50 font-bold text-indigo-700 border-l-4 border-indigo-600' : 'hover:bg-slate-50 text-slate-700'}">
+            <span class="truncate text-slate-500 italic">Unmapped Domains</span>
+            <span class="bg-slate-100 text-slate-500 text-[10px] font-mono px-2 py-0.5 rounded-full">${unmappedUniqueDomains}</span>
+          </button>
+        `;
+      }
+
+      const filteredNorms = sortedNormETs.filter(norm => {
+        const display = getETDisplayName(norm).toLowerCase();
+        return !filterSearch || display.includes(filterSearch) || norm.toLowerCase().includes(filterSearch);
+      });
+
+      if (filteredNorms.length > 0) {
+        html += `<div class="p-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50">Campaigns (${filteredNorms.length})</div>`;
+        filteredNorms.forEach(norm => {
+          const count = etUniqueDomainCount.get(norm);
+          const displayName = getETDisplayName(norm);
+          const isSelected = selectedNormalizedET === norm;
+
+          html += `
+            <button type="button" data-et-norm="${escapeHtml(norm)}" class="et-sidebar-item min-h-[44px] w-full text-left px-3 py-2 flex items-center justify-between transition-colors ${isSelected ? 'bg-indigo-50 font-bold text-indigo-700 border-l-4 border-indigo-600' : 'hover:bg-slate-50 text-slate-700'}">
+              <span class="truncate text-xs" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</span>
+              <span class="bg-slate-100 text-slate-600 text-[10px] font-mono px-2 py-0.5 rounded-full shrink-0 ml-1.5">${count}</span>
+            </button>
+          `;
+        });
+      } else if (filterSearch) {
+        html += `<div class="p-4 text-center text-slate-400 text-xs">No matching ET names.</div>`;
+      }
+
+      etSidebarList.innerHTML = html;
+
+      etSidebarList.querySelectorAll('.et-sidebar-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const norm = item.getAttribute('data-et-norm');
+          selectET(norm);
+        });
+      });
+    }
+
+    function selectET(normET) {
+      selectedNormalizedET = normET;
+      selectedDonutCategory = 'ALL';
+      if (filterEt) filterEt.value = normET;
+      renderETSidebar();
+      renderRecords();
+      updateStats();
+      renderInboxDonutChart();
+    }
+
+    function toggleDonutCategoryFilter(catKey) {
+      if (selectedDonutCategory === catKey) {
+        selectedDonutCategory = 'ALL';
+      } else {
+        selectedDonutCategory = catKey;
+      }
+      renderRecords();
+      renderInboxDonutChart();
+    }
+
+    if (sidebarEtSearch) {
+      sidebarEtSearch.addEventListener('input', () => {
+        renderETSidebar();
+      });
+    }
+
+    function populateEtFilterDropdown() {
+      if (!filterEt) return;
+
+      const normETSet = new Set();
+      emailRecords.forEach(rec => {
+        const norm = rec.normalizedET || normalizeETName(rec.etName);
+        if (norm !== 'UNMAPPED') {
+          normETSet.add(norm);
+        }
+      });
+
+      const sortedNormETs = Array.from(normETSet).sort((a, b) => {
+        return getETDisplayName(a).localeCompare(getETDisplayName(b));
+      });
+
+      let html = `
+        <option value="ALL">All ET Names</option>
+        <option value="MAPPED">Mapped ETs Only</option>
+        <option value="UNMAPPED">Unmapped Only</option>
+      `;
+
+      if (sortedNormETs.length > 0) {
+        html += `<optgroup label="Specific ET Names">`;
+        sortedNormETs.forEach(norm => {
+          const display = getETDisplayName(norm);
+          html += `<option value="${escapeHtml(norm)}">${escapeHtml(display)}</option>`;
+        });
+        html += `</optgroup>`;
+      }
+
+      filterEt.innerHTML = html;
+      filterEt.value = selectedNormalizedET;
+      if (filterEt.selectedIndex === -1) {
+        filterEt.value = 'ALL';
+        selectedNormalizedET = 'ALL';
+      }
+    }
+
+    if (filterEt) {
+      filterEt.addEventListener('change', () => {
+        selectET(filterEt.value);
+      });
+    }
+
+    // --- CIRCULAR / DONUT STATUS CHART ---
+    function renderInboxDonutChart() {
+      if (!inboxDonutSvg || !chartLegendContainer) return;
+
+      const targetUnits = getUniqueDomainUnits(emailRecords, selectedNormalizedET);
+
+      const activeTitle = getETDisplayName(selectedNormalizedET);
+      chartEtTitle.textContent = activeTitle;
+      chartTotalCount.textContent = `${targetUnits.length} mail${targetUnits.length === 1 ? '' : 's'}`;
+      chartCenterVal.textContent = targetUnits.length;
+
+      let count4Acs = 0;
+      let count3Acs = 0;
+      let count2Acs = 0;
+      let count1Acs = 0;
+      let countOverallSpam = 0;
+
+      targetUnits.forEach(unit => {
+        if (unit.hasSpam) countOverallSpam++;
+        const inboxSize = unit.inboxAccounts.size;
+        if (inboxSize === 4) count4Acs++;
+        else if (inboxSize === 3) count3Acs++;
+        else if (inboxSize === 2) count2Acs++;
+        else if (inboxSize === 1) count1Acs++;
+      });
+
+      const categories = [
+        { key: '4_acs', label: '4 ACs Inboxed', count: count4Acs, color: '#10b981', ringBg: 'bg-emerald-500' },
+        { key: '3_acs', label: '3 ACs Inboxed', count: count3Acs, color: '#6366f1', ringBg: 'bg-indigo-500' },
+        { key: '2_acs', label: '2 ACs Inboxed', count: count2Acs, color: '#f59e0b', ringBg: 'bg-amber-500' },
+        { key: '1_acs', label: '1 AC Inboxed',  count: count1Acs, color: '#0ea5e9', ringBg: 'bg-sky-500' },
+        { key: 'spam',  label: 'Overall Spam',   count: countOverallSpam, color: '#f43f5e', ringBg: 'bg-rose-500' }
+      ];
+
+      const totalDistributionCount = categories.reduce((sum, c) => sum + c.count, 0);
+
+      const radius = 70;
+      const circumference = 2 * Math.PI * radius;
+      let strokeDashoffsetAccumulator = 0;
+
+      let svgSegmentsHtml = `<circle cx="100" cy="100" r="${radius}" fill="none" stroke="#f1f5f9" stroke-width="22"></circle>`;
+
+      if (totalDistributionCount > 0) {
+        categories.forEach(cat => {
+          if (cat.count <= 0) return;
+          const sliceLength = (cat.count / totalDistributionCount) * circumference;
+          const strokeDasharray = `${sliceLength} ${circumference - sliceLength}`;
+          const currentOffset = strokeDashoffsetAccumulator;
+
+          const isSelected = selectedDonutCategory === cat.key;
+          const strokeW = isSelected ? '28' : '22';
+          const opacityVal = (selectedDonutCategory !== 'ALL' && !isSelected) ? '0.35' : '1';
+
+          svgSegmentsHtml += `
+            <circle
+              cx="100" cy="100" r="${radius}"
+              fill="none"
+              stroke="${cat.color}"
+              stroke-width="${strokeW}"
+              stroke-dasharray="${strokeDasharray}"
+              stroke-dashoffset="${-currentOffset}"
+              stroke-linecap="butt"
+              opacity="${opacityVal}"
+              class="donut-segment"
+              data-cat-key="${cat.key}"
+              data-cat-label="${escapeHtml(cat.label)}"
+              data-cat-count="${cat.count}"
+            />
+          `;
+
+          strokeDashoffsetAccumulator += sliceLength;
+        });
+      }
+
+      inboxDonutSvg.innerHTML = svgSegmentsHtml;
+
+      chartLegendContainer.innerHTML = categories.map(cat => {
+        const pct = targetUnits.length > 0 ? ((cat.count / targetUnits.length) * 100).toFixed(0) : 0;
+        const isSelected = selectedDonutCategory === cat.key;
+        const activeStyles = isSelected ? 'bg-indigo-50 border-indigo-300 ring-1 ring-indigo-400 font-bold' : 'hover:bg-slate-50 border-transparent';
+        
+        return `
+          <div class="legend-row border flex items-center justify-between p-2 rounded-lg transition-all cursor-pointer ${activeStyles}" data-cat-key="${cat.key}" title="Click to filter by ${escapeHtml(cat.label)}">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full ${cat.ringBg} shrink-0"></span>
+              <span class="text-slate-700 font-medium truncate text-[11px]">${cat.label}</span>
+              ${isSelected ? `<span class="text-[9px] bg-indigo-600 text-white px-1.5 py-0.2 rounded-full font-bold ml-1">Filtered</span>` : ''}
+            </div>
+            <div class="flex items-center gap-1.5 font-mono text-[11px]">
+              <span class="font-bold text-slate-900">${cat.count}</span>
+              <span class="text-slate-400 text-[10px]">(${pct}%)</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      inboxDonutSvg.querySelectorAll('.donut-segment').forEach(seg => {
+        const key = seg.getAttribute('data-cat-key');
+        seg.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleDonutCategoryFilter(key);
+        });
+
+        seg.addEventListener('mouseenter', () => {
+          const count = seg.getAttribute('data-cat-count');
+          const label = seg.getAttribute('data-cat-label');
+          chartCenterVal.textContent = count;
+          chartCenterSub.textContent = label;
+        });
+        seg.addEventListener('mouseleave', () => {
+          chartCenterVal.textContent = targetUnits.length;
+          chartCenterSub.textContent = 'Unique Mails';
+        });
+      });
+
+      chartLegendContainer.querySelectorAll('.legend-row').forEach(row => {
+        const key = row.getAttribute('data-cat-key');
+        row.addEventListener('click', () => {
+          toggleDonutCategoryFilter(key);
+        });
+
+        row.addEventListener('mouseenter', () => {
+          const seg = inboxDonutSvg.querySelector(`[data-cat-key="${key}"]`);
+          if (seg) {
+            seg.setAttribute('stroke-width', '28');
+            chartCenterVal.textContent = seg.getAttribute('data-cat-count');
+            chartCenterSub.textContent = seg.getAttribute('data-cat-label');
+          }
+        });
+        row.addEventListener('mouseleave', () => {
+          inboxDonutSvg.querySelectorAll('.donut-segment').forEach(s => {
+            const isSel = selectedDonutCategory === s.getAttribute('data-cat-key');
+            s.setAttribute('stroke-width', isSel ? '28' : '22');
+          });
+          chartCenterVal.textContent = targetUnits.length;
+          chartCenterSub.textContent = 'Unique Mails';
+        });
+      });
+    }
+
+    // --- CSV PARSING: EXTRACTING "Domain" & "DATE" HEADINGS ---
+    function parseJSG30CsvData(rawText) {
+      const parsed = [];
+      const lines = rawText.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) return parsed;
+
+      const headerCols = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
+      
+      let domainIdx = headerCols.findIndex(h => h === 'domain' || h === 'domains' || h.includes('domain'));
+      let dateIdx = headerCols.findIndex(h => h === 'date' || h.includes('date'));
+      let etIdx = headerCols.findIndex(h => h.includes('et') || h.includes('name'));
+
+      if (domainIdx === -1) domainIdx = 0;
+      if (dateIdx === -1) dateIdx = 1;
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        const d = normalizeDomain(cols[domainIdx] || '');
+        const dateStr = dateIdx !== -1 ? (cols[dateIdx] || '').trim() : '';
+        const et = etIdx !== -1 && cols[etIdx] ? cols[etIdx].trim() : 'JSG 30';
+
+        if (d && !d.toLowerCase().includes('domain')) {
+          registerETDisplay(et);
+          parsed.push({ domain: d, etName: et, dateStr: dateStr });
+        }
+      }
+      return parsed;
+    }
+
+    // --- JSG 30 SHEET SYNC ---
+    async function syncJSG30Sheet() {
+      sheetSyncSpinner.classList.add('animate-spin');
+      sheetStatusText.textContent = 'Fetching JSG 30...';
+      const targetUrl = sheetUrlInput.value.trim() || JSG_30_CSV_URL;
+      const endpoints = [
+        targetUrl,
+        `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`
+      ];
+
+      let parsed = [];
+      for (const ep of endpoints) {
+        try {
+          const resp = await fetch(ep, { cache: 'no-store' });
+          if (resp.ok) {
+            const raw = await resp.text();
+            if (raw && !raw.includes('<!DOCTYPE html>') && raw.length > 10) {
+              parsed = parseJSG30CsvData(raw);
+              if (parsed.length > 0) break;
+            }
+          }
+        } catch (err) {}
+      }
+
+      sheetSyncSpinner.classList.remove('animate-spin');
+
+      if (parsed.length > 0) {
+        domainLookupMap.clear();
+        parsed.forEach(p => {
+          registerETDisplay(p.etName);
+          domainLookupMap.set(p.domain, { etName: p.etName, dateStr: p.dateStr });
+        });
+        sheetStatusText.textContent = `Active: ${parsed.length} domains`;
+        sheetSyncTime.textContent = new Date().toLocaleTimeString();
+        renderJSG30Table(parsed);
+        refreshAllRecordEtNames();
+        addLog(`[JSG 30] Synced ${parsed.length} domains`, 'success');
+      } else {
+        sheetStatusText.textContent = 'Sync blocked or empty data returned.';
+      }
+    }
+
+    function renderJSG30Table(mappings) {
+      sheetTableCount.textContent = mappings.length;
+      badgeJsg30Count.textContent = mappings.length;
+      statSheetCount.textContent = mappings.length;
+
+      if (mappings.length === 0) {
+        sheetMappingsTbody.innerHTML = `<tr><td colspan="3" class="py-6 text-center text-slate-500">No cached JSG 30 mappings found.</td></tr>`;
+        return;
+      }
+
+      sheetMappingsTbody.innerHTML = mappings.map(m => `
+        <tr class="hover:bg-slate-50">
+          <td class="py-2.5 px-3 font-mono text-slate-700">${escapeHtml(m.domain)}</td>
+          <td class="py-2.5 px-3 font-semibold text-indigo-700">${escapeHtml(m.etName)}</td>
+          <td class="py-2.5 px-3 font-mono text-slate-500 text-[10px]">${escapeHtml(m.dateStr || 'Undated')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function refreshAllRecordEtNames() {
+      emailRecords.forEach(rec => {
+        rec.etName = resolveEtName(rec.domain);
+        rec.normalizedET = normalizeETName(rec.etName);
+        registerETDisplay(rec.etName);
+      });
+      populateEtFilterDropdown();
+      renderETSidebar();
+      renderRecords();
+      updateStats();
+      renderInboxDonutChart();
+    }
+
+    // --- GMAIL API ---
+    async function getAccessToken(acc) {
+      const now = Date.now();
+      if (tokenCache[acc.id] && tokenCache[acc.id].expiry > now + 60000) {
+        return tokenCache[acc.id].token;
+      }
+
+      const bodyParams = new URLSearchParams({
+        client_id: OAUTH_CLIENT_ID,
+        client_secret: OAUTH_CLIENT_SECRET,
+        refresh_token: acc.token,
+        grant_type: 'refresh_token'
+      });
+
+      const tokenEndpoints = [
+        'https://oauth2.googleapis.com/token',
+        `https://corsproxy.io/?url=${encodeURIComponent('https://oauth2.googleapis.com/token')}`
+      ];
+
+      for (const ep of tokenEndpoints) {
+        try {
+          const resp = await fetch(ep, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: bodyParams.toString()
+          });
+
+          if (resp.ok) {
+            const data = await resp.json();
+            if (data.access_token) {
+              tokenCache[acc.id] = {
+                token: data.access_token,
+                expiry: now + (data.expires_in || 3600) * 1000
+              };
+              return data.access_token;
+            }
+          }
+        } catch (err) {}
+      }
+      return null;
+    }
+
+    function formatDateYMD(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}/${m}/${day}`;
+    }
+
+    function getGmailQueryForScope(scope) {
+      const now = new Date();
+      if (scope === 'YESTERDAY') {
+        const dayBeforeYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return `after:${formatDateYMD(dayBeforeYesterday)} before:${formatDateYMD(today)} (in:inbox OR in:spam OR in:trash)`;
+      } else {
+        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        return `after:${formatDateYMD(yesterday)} (in:inbox OR in:spam OR in:trash)`;
+      }
+    }
+
+    function isDateMatchingScope(dateObj, scope) {
+      const now = new Date();
+      if (scope === 'YESTERDAY') {
+        const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        return (
+          dateObj.getDate() === yesterday.getDate() &&
+          dateObj.getMonth() === yesterday.getMonth() &&
+          dateObj.getFullYear() === yesterday.getFullYear()
+        );
+      } else {
+        return (
+          dateObj.getDate() === now.getDate() &&
+          dateObj.getMonth() === now.getMonth() &&
+          dateObj.getFullYear() === now.getFullYear()
+        );
+      }
+    }
+
+    async function syncMailbox(acc, scope = 'TODAY') {
+      const token = await getAccessToken(acc);
+      if (!token) return [];
+
+      try {
+        const searchQuery = getGmailQueryForScope(scope);
+        let allMessageSummaries = [];
+        let pageToken = '';
+
+        do {
+          const listUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=100&includeSpamTrash=true&q=${encodeURIComponent(searchQuery)}${pageToken ? `&pageToken=${pageToken}` : ''}`;
+          
+          let listResp = null;
+          try {
+            listResp = await fetch(listUrl, { headers: { Authorization: `Bearer ${token}` } });
+          } catch {
+            listResp = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(listUrl)}`, { headers: { Authorization: `Bearer ${token}` } });
+          }
+
+          if (!listResp || !listResp.ok) break;
+
+          const listData = await listResp.json();
+          if (listData.messages && listData.messages.length > 0) {
+            allMessageSummaries.push(...listData.messages);
+          }
+          pageToken = listData.nextPageToken || '';
+        } while (pageToken);
+
+        const newSummaries = [];
+        const existingRecords = [];
+
+        for (const msg of allMessageSummaries) {
+          const cacheKey = `${acc.id}_${msg.id}`;
+          if (fetchedMessageCache.has(cacheKey)) {
+            existingRecords.push(fetchedMessageCache.get(cacheKey));
+          } else {
+            newSummaries.push(msg);
+          }
+        }
+
+        const BATCH_SIZE = 25;
+        const newlyFetchedRecords = [];
+
+        for (let i = 0; i < newSummaries.length; i += BATCH_SIZE) {
+          const chunk = newSummaries.slice(i, i + BATCH_SIZE);
+          const chunkPromises = chunk.map(async (item) => {
+            try {
+              const detailUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${item.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date`;
+              let r = null;
+              try {
+                r = await fetch(detailUrl, { headers: { Authorization: `Bearer ${token}` } });
+              } catch {
+                r = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(detailUrl)}`, { headers: { Authorization: `Bearer ${token}` } });
+              }
+              return r && r.ok ? await r.json() : null;
+            } catch {
+              return null;
+            }
+          });
+
+          const chunkDetails = await Promise.all(chunkPromises);
+
+          chunkDetails.forEach((msg) => {
+            if (!msg) return;
+
+            const labels = msg.labelIds || [];
+            const isSpam = labels.includes('SPAM');
+            const isInbox = labels.includes('INBOX');
+            let folder = isSpam ? 'SPAM' : isInbox ? 'INBOX' : (labels[0] || 'ARCHIVE');
+
+            const headers = msg.payload?.headers || [];
+            const fromVal = headers.find(h => h.name.toLowerCase() === 'from')?.value || 'Unknown';
+            const subjVal = headers.find(h => h.name.toLowerCase() === 'subject')?.value || '(No Subject)';
+            const dateVal = headers.find(h => h.name.toLowerCase() === 'date')?.value;
+
+            const domain = extractDomain(fromVal);
+            const normalizedDomain = normalizeDomain(domain);
+            const etName = resolveEtName(domain);
+            const normalizedET = normalizeETName(etName);
+            registerETDisplay(etName);
+
+            const internalTime = msg.internalDate ? parseInt(msg.internalDate, 10) : Date.now();
+            const emailDate = new Date(internalTime);
+
+            const record = {
+              id: `${acc.id}_${msg.id}`,
+              messageId: msg.id,
+              accountName: acc.name,
+              accountType: acc.type,
+              from: fromVal,
+              domain: domain,
+              normalizedDomain: normalizedDomain,
+              etName: etName,
+              normalizedET: normalizedET,
+              subject: subjVal,
+              folder: folder,
+              detectionTime: emailDate,
+              dateHeader: dateVal,
+              lastSyncTime: new Date()
+            };
+
+            fetchedMessageCache.set(record.id, record);
+
+            if (isDateMatchingScope(emailDate, scope)) {
+              if (folder === 'SPAM' && scope === 'TODAY') {
+                notifySpamDetected(record);
+              }
+              newlyFetchedRecords.push(record);
+            }
+          });
+        }
+
+        const validExisting = existingRecords.filter(r => isDateMatchingScope(r.detectionTime, scope));
+        return [...validExisting, ...newlyFetchedRecords];
+      } catch (err) {
+        return [];
+      }
+    }
+
+    async function runGlobalSync(targetScope = 'TODAY') {
+      if (isSyncing) return;
+      isSyncing = true;
+      currentSyncScope = targetScope;
+
+      if (targetScope === 'YESTERDAY') {
+        yesterdaySpinner.classList.add('animate-spin');
+        yesterdayBtnLabel.textContent = '...';
+      } else {
+        syncSpinner.classList.add('animate-spin');
+        syncBtnLabel.textContent = '...';
+      }
+
+      updateScopeUI();
+
+      try {
+        // Also trigger background JSG 30 refresh
+        syncJSG30Sheet();
+
+        const allItems = [];
+        const accPromises = ACCOUNTS.map(acc => syncMailbox(acc, targetScope));
+        const results = await Promise.all(accPromises);
+        results.forEach(items => allItems.push(...items));
+
+        const map = new Map();
+        allItems.forEach(item => {
+          if (isDateMatchingScope(item.detectionTime, targetScope)) {
+            if (!map.has(item.id)) map.set(item.id, item);
+          }
+        });
+
+        emailRecords = Array.from(map.values())
+          .sort((a, b) => b.detectionTime.getTime() - a.detectionTime.getTime());
+
+        emailRecords.forEach(rec => {
+          rec.domain = normalizeDomain(rec.domain);
+          rec.normalizedDomain = normalizeDomain(rec.domain);
+          rec.etName = resolveEtName(rec.domain);
+          rec.normalizedET = normalizeETName(rec.etName);
+          registerETDisplay(rec.etName);
+        });
+
+        populateEtFilterDropdown();
+        renderETSidebar();
+        addLog(`[Sync] Loaded mail data (${targetScope})`, 'success');
+      } catch (err) {
+        addLog(`[Sync Error] ${err.message}`, 'error');
+      } finally {
+        isSyncing = false;
+        syncSpinner.classList.remove('animate-spin');
+        syncBtnLabel.textContent = 'Sync';
+        yesterdaySpinner.classList.remove('animate-spin');
+        yesterdayBtnLabel.textContent = 'Yesterday';
+
+        lastGlobalSync = new Date();
+        headerLastSync.textContent = lastGlobalSync.toLocaleTimeString();
+
+        renderRecords();
+        updateStats();
+        renderInboxDonutChart();
+      }
+    }
+
+    function updateScopeUI() {
+      if (currentSyncScope === 'YESTERDAY') {
+        badgeActiveScope.textContent = "⏪ Yesterday";
+        badgeActiveScope.className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-violet-100 text-violet-800 border border-violet-300";
+        statTotalTitle.textContent = "Yesterday's Mails";
+        tabLabelMonitor.textContent = "Cards (Yest)";
+      } else {
+        badgeActiveScope.textContent = "📅 Today";
+        badgeActiveScope.className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200";
+        statTotalTitle.textContent = "Today's Mails";
+        tabLabelMonitor.textContent = "Cards";
+      }
+    }
+
+    function toggleDomainCard(encodedDomain) {
+      const domain = decodeURIComponent(encodedDomain);
+      if (expandedDomainCards.has(domain)) {
+        expandedDomainCards.delete(domain);
+      } else {
+        expandedDomainCards.add(domain);
+      }
+      renderRecords();
+    }
+
+    // --- RESPONSIVE CARD BUILDER ---
+    function buildDomainCardHtml(group) {
+      const isExpanded = expandedDomainCards.has(group.domain);
+      const encodedDomain = encodeURIComponent(group.domain);
+
+      const accountStatusMap = {};
+      ACCOUNTS.forEach(acc => {
+        accountStatusMap[acc.name] = { hasMail: false, folder: 'NONE', records: [] };
+      });
+
+      let totalInboxes = 0;
+      let totalSpams = 0;
+      const inboxAccountsSet = new Set();
+      const spamAccountsSet = new Set();
+
+      group.emails.forEach(em => {
+        if (accountStatusMap[em.accountName]) {
+          accountStatusMap[em.accountName].hasMail = true;
+          accountStatusMap[em.accountName].records.push(em);
+          if (em.folder === 'INBOX') {
+            accountStatusMap[em.accountName].folder = 'INBOX';
+            inboxAccountsSet.add(em.accountName);
+            totalInboxes++;
+          } else if (em.folder === 'SPAM') {
+            if (accountStatusMap[em.accountName].folder !== 'INBOX') {
+              accountStatusMap[em.accountName].folder = 'SPAM';
+            }
+            spamAccountsSet.add(em.accountName);
+            totalSpams++;
+          } else if (accountStatusMap[em.accountName].folder === 'NONE') {
+            accountStatusMap[em.accountName].folder = em.folder;
+          }
+        }
+      });
+
+      const inboxCount = inboxAccountsSet.size;
+      const spamCount = spamAccountsSet.size;
+
+      let borderClass = 'border-slate-200 hover:border-indigo-300';
+      let statusBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+      
+      if (totalSpams > 0) {
+        borderClass = 'border-rose-300 shadow-rose-500/10 ring-1 ring-rose-400/20';
+      }
+
+      if (inboxCount === 4) {
+        statusBadgeClass = 'bg-emerald-100 text-emerald-800 border-emerald-300 font-extrabold';
+      } else if (inboxCount >= 2) {
+        statusBadgeClass = 'bg-indigo-100 text-indigo-800 border-indigo-300 font-bold';
+      } else if (inboxCount === 1) {
+        statusBadgeClass = 'bg-amber-100 text-amber-800 border-amber-300 font-bold';
+      } else if (inboxCount === 0 && totalSpams > 0) {
+        statusBadgeClass = 'bg-rose-100 text-rose-800 border-rose-300 font-bold';
+      }
+
+      return `
+        <div class="bg-white/95 backdrop-blur-xs border ${borderClass} rounded-xl shadow-xs overflow-hidden flex flex-col justify-between w-full max-w-full">
+          <div 
+            onclick="toggleDomainCard('${encodedDomain}')"
+            class="p-3 sm:p-4 cursor-pointer select-none bg-white/50 hover:bg-slate-50/70 transition-colors flex-1 flex flex-col justify-between gap-2.5 w-full"
+          >
+            <div>
+              <div class="flex items-start justify-between gap-1.5 w-full">
+                <div class="flex items-center gap-2 min-w-0 flex-1">
+                  <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg ${totalSpams > 0 ? 'bg-rose-100 text-rose-700 border border-rose-200' : 'bg-indigo-50 text-indigo-700 border border-indigo-200'} flex items-center justify-center shrink-0 font-bold text-xs">
+                    ${totalSpams > 0 ? '⚠️' : '🌐'}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="font-mono text-xs sm:text-sm font-bold text-slate-900 truncate" title="${escapeHtml(group.domain)}">
+                      ${escapeHtml(group.domain)}
+                    </div>
+                    <div class="text-[10px] text-slate-400 truncate">
+                      ${group.latestTime.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} · 1 Unique Mail
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="button" 
+                  onclick="event.stopPropagation(); copyDomainText('${escapeHtml(group.domain)}', this)"
+                  class="min-h-[32px] inline-flex items-center gap-1 px-2 py-1 rounded border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-[10px] font-medium shadow-2xs shrink-0"
+                >
+                  <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+
+              <div class="mt-2">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 truncate max-w-full" title="${escapeHtml(group.etName)}">
+                  ${escapeHtml(group.etName)}
+                </span>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-1 flex-wrap w-full">
+              <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] border ${statusBadgeClass}">
+                <span class="w-1.5 h-1.5 rounded-full ${inboxCount === 4 ? 'bg-emerald-500 animate-pulse' : inboxCount > 0 ? 'bg-indigo-500' : 'bg-rose-500'}"></span>
+                <span><strong>${inboxCount}/4 Inbox</strong></span>
+              </div>
+
+              ${totalSpams > 0 ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                  <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+                  <span>${totalSpams} Spam (${spamCount} AC)</span>
+                </span>
+              ` : `
+                <span class="text-[10px] text-emerald-600 font-semibold">✓ 0 Spam</span>
+              `}
+
+              <div class="w-5 h-5 flex items-center justify-center rounded-full bg-slate-100 text-slate-500 transform transition-transform duration-200 ${isExpanded ? 'rotate-180 bg-indigo-100 text-indigo-600' : ''}">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+              </div>
+            </div>
+          </div>
+
+          ${isExpanded ? `
+            <div class="border-t border-slate-200 bg-slate-50/90 p-2.5 space-y-1.5 w-full">
+              <div class="text-[9px] font-bold text-slate-600 uppercase tracking-wider flex items-center justify-between">
+                <span>Mailbox Placements:</span>
+                <span class="text-indigo-600 font-mono truncate max-w-[150px]">${group.domain}</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 w-full">
+                ${ACCOUNTS.map(acc => {
+                  const accData = accountStatusMap[acc.name];
+                  const folder = accData.folder;
+                  const isInbox = folder === 'INBOX';
+                  const isSpam = folder === 'SPAM';
+                  const hasMail = accData.hasMail;
+
+                  let bgCard = "bg-white border-slate-200";
+                  let badge = "bg-slate-100 text-slate-400";
+                  let badgeText = "None";
+
+                  if (isInbox) {
+                    bgCard = "bg-emerald-50/80 border-emerald-300";
+                    badge = "bg-emerald-100 text-emerald-800 font-bold";
+                    badgeText = "INBOX ✓";
+                  } else if (isSpam) {
+                    bgCard = "bg-rose-50/80 border-rose-300";
+                    badge = "bg-rose-100 text-rose-800 font-bold";
+                    badgeText = "SPAM ⚠️";
+                  } else if (hasMail) {
+                    bgCard = "bg-amber-50/80 border-amber-300";
+                    badge = "bg-amber-100 text-amber-800 font-medium";
+                    badgeText = escapeHtml(folder);
+                  }
+
+                  return `
+                    <div class="p-2 rounded-lg border ${bgCard} text-[10px] space-y-0.5 w-full min-w-0">
+                      <div class="flex items-center justify-between gap-1">
+                        <span class="font-bold text-slate-800 truncate text-[9px]">${escapeHtml(acc.name)}</span>
+                        <span class="px-1.5 py-0.2 rounded text-[8px] ${badge} shrink-0">${badgeText}</span>
+                      </div>
+                      ${accData.records.length > 0 ? `
+                        <div class="text-slate-600 truncate text-[8px]" title="${escapeHtml(accData.records[0].subject)}">
+                          ${escapeHtml(accData.records[0].subject || '(No Subj)')}
+                        </div>
+                      ` : `
+                        <div class="text-slate-400 italic text-[8px]">No emails</div>
+                      `}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // --- MAIN RENDER ---
+    function renderRecords() {
+      const q = searchInput.value.toLowerCase().trim();
+      const filterVal = filterFolder.value;
+      
+      const domainUnits = getUniqueDomainUnits(emailRecords, selectedNormalizedET);
+      const isSpecificEtSelected = selectedNormalizedET !== 'ALL' && selectedNormalizedET !== 'MAPPED' && selectedNormalizedET !== 'UNMAPPED';
+
+      const filteredUnits = domainUnits.filter(unit => {
+        if (q) {
+          const matchDomain = unit.domain.includes(q);
+          const matchEt = unit.etName.toLowerCase().includes(q) || unit.normalizedET.toLowerCase().includes(q);
+          const matchSubj = unit.emails.some(e => (e.subject || '').toLowerCase().includes(q));
+          if (!matchDomain && !matchEt && !matchSubj) return false;
+        }
+
+        const inboxCount = unit.inboxAccounts.size;
+
+        if (filterVal === 'HAS_SPAM' && !unit.hasSpam) return false;
+        if (filterVal === 'ALL_INBOX' && inboxCount !== 4) return false;
+        if (filterVal === 'PARTIAL_INBOX' && (inboxCount === 0 || inboxCount === 4)) return false;
+        if (filterVal === 'ZERO_INBOX' && inboxCount !== 0) return false;
+
+        if (selectedDonutCategory !== 'ALL') {
+          if (selectedDonutCategory === '4_acs' && inboxCount !== 4) return false;
+          if (selectedDonutCategory === '3_acs' && inboxCount !== 3) return false;
+          if (selectedDonutCategory === '2_acs' && inboxCount !== 2) return false;
+          if (selectedDonutCategory === '1_acs' && inboxCount !== 1) return false;
+          if (selectedDonutCategory === 'spam' && !unit.hasSpam) return false;
+        }
+
+        return true;
+      });
+
+      badgeRecordsCount.textContent = `${filteredUnits.length}`;
+
+      let filterBannerHtml = '';
+      if (selectedDonutCategory !== 'ALL') {
+        const catMap = {
+          '4_acs': '4 ACs Inboxed',
+          '3_acs': '3 ACs Inboxed',
+          '2_acs': '2 ACs Inboxed',
+          '1_acs': '1 AC Inboxed',
+          'spam': 'Overall Spam'
+        };
+        filterBannerHtml = `
+          <div class="flex items-center justify-between p-2.5 px-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900 w-full mb-3 shadow-xs">
+            <span class="flex items-center gap-1.5 font-medium">
+              <span>Showing:</span>
+              <strong class="text-indigo-700">${catMap[selectedDonutCategory]}</strong>
+              <span class="text-slate-500 font-mono">(${filteredUnits.length} found)</span>
+            </span>
+            <button onclick="toggleDonutCategoryFilter('${selectedDonutCategory}')" class="px-2 py-0.5 text-[11px] font-bold bg-white text-indigo-600 border border-indigo-300 rounded hover:bg-indigo-50">
+              Clear Filter ✕
+            </button>
+          </div>
+        `;
+      }
+
+      if (filteredUnits.length === 0) {
+        domainCardsContainer.innerHTML = `
+          ${filterBannerHtml}
+          <div class="bg-white/90 backdrop-blur-xs border border-slate-200 rounded-xl p-8 text-center text-slate-500 shadow-xs w-full">
+            <p class="text-xs font-semibold text-slate-700">No domain records found</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">No emails matched the current status filter.</p>
+          </div>
+        `;
+        return;
+      }
+
+      if (isSpecificEtSelected) {
+        const displayName = getETDisplayName(selectedNormalizedET);
+        
+        let inbox4Count = 0;
+        let inbox3Count = 0;
+        let inbox2Count = 0;
+
+        let spam4Count = 0;
+        let spam3Count = 0;
+        let spamLowCount = 0;
+
+        const inboxGroups = [];
+        const spamGroups = [];
+
+        filteredUnits.forEach(unit => {
+          const inboxAccCount = unit.inboxAccounts.size;
+          const spamAccCount = unit.spamAccounts.size;
+
+          if (inboxAccCount === 4) inbox4Count++;
+          else if (inboxAccCount === 3) inbox3Count++;
+          else if (inboxAccCount === 2) inbox2Count++;
+
+          if (spamAccCount === 4) spam4Count++;
+          else if (spamAccCount === 3) spam3Count++;
+          else if (spamAccCount > 0) spamLowCount++;
+
+          if (unit.hasInbox) inboxGroups.push(unit);
+          if (unit.hasSpam) spamGroups.push(unit);
+        });
+
+        domainCardsContainer.innerHTML = `
+          ${filterBannerHtml}
+          <!-- ET Overview Header -->
+          <div class="bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 border border-indigo-700/40 rounded-xl p-3.5 sm:p-5 text-white shadow-md space-y-2.5 w-full">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div>
+                <span class="text-[10px] uppercase tracking-wider text-indigo-300 font-bold block">Selected ET Campaign</span>
+                <h2 class="text-base sm:text-xl font-black text-white tracking-tight break-all">${escapeHtml(displayName)}</h2>
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-xs w-full sm:w-auto">
+                <div class="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 text-center">
+                  <div class="text-[9px] text-slate-300">Total</div>
+                  <div class="text-sm font-black text-white">${filteredUnits.length}</div>
+                </div>
+                <div class="bg-emerald-500/20 px-3 py-1.5 rounded-lg border border-emerald-400/30 text-center">
+                  <div class="text-[9px] text-emerald-200">Inbox</div>
+                  <div class="text-sm font-black text-emerald-300">${inboxGroups.length}</div>
+                </div>
+                <div class="bg-rose-500/20 px-3 py-1.5 rounded-lg border border-rose-400/30 text-center">
+                  <div class="text-[9px] text-rose-200">Spam</div>
+                  <div class="text-sm font-black text-rose-300">${spamGroups.length}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION 1: OPENER / INBOX -->
+          <div class="bg-white/95 backdrop-blur-xs border-2 border-emerald-300 rounded-xl p-3.5 sm:p-5 shadow-xs space-y-3.5 w-full max-w-full">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-emerald-100 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">📬</span>
+                <div>
+                  <h3 class="text-xs sm:text-sm font-bold text-emerald-950 flex items-center gap-1.5">
+                    Section 1: Opener &amp; Inbox
+                    <span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">${inboxGroups.length} Dom</span>
+                  </h3>
+                  <p class="text-[10px] text-emerald-700">Inbox distribution for ${escapeHtml(displayName)}</p>
+                </div>
+              </div>
+
+              <!-- Counter Badges -->
+              <div class="grid grid-cols-3 gap-1.5 w-full sm:w-auto">
+                <div class="bg-emerald-50 border border-emerald-300 px-2.5 py-1 rounded-lg text-center">
+                  <span class="text-[9px] font-bold text-emerald-700 block truncate">4 ACs</span>
+                  <span class="text-sm font-black text-emerald-800">${inbox4Count}</span>
+                </div>
+                <div class="bg-indigo-50 border border-indigo-300 px-2.5 py-1 rounded-lg text-center">
+                  <span class="text-[9px] font-bold text-indigo-700 block truncate">3 ACs</span>
+                  <span class="text-sm font-black text-indigo-800">${inbox3Count}</span>
+                </div>
+                <div class="bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg text-center">
+                  <span class="text-[9px] font-bold text-amber-700 block truncate">2 ACs</span>
+                  <span class="text-sm font-black text-amber-800">${inbox2Count}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Inbox Domain Cards Grid -->
+            ${inboxGroups.length > 0 ? `
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                ${inboxGroups.map(g => buildDomainCardHtml(g)).join('')}
+              </div>
+            ` : `
+              <div class="py-6 text-center text-xs text-slate-500 bg-slate-50 rounded-lg">
+                No inbox placements found for this selection.
+              </div>
+            `}
+          </div>
+
+          <!-- SECTION 2: SPAM PLACEMENTS -->
+          <div class="bg-white/95 backdrop-blur-xs border-2 border-rose-300 rounded-xl p-3.5 sm:p-5 shadow-xs space-y-3.5 w-full max-w-full">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-rose-100 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="text-lg">🚨</span>
+                <div>
+                  <h3 class="text-xs sm:text-sm font-bold text-rose-950 flex items-center gap-1.5">
+                    Section 2: Spam Placements
+                    <span class="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold">${spamGroups.length} Dom</span>
+                  </h3>
+                  <p class="text-[10px] text-rose-700">Spam landings across accounts</p>
+                </div>
+              </div>
+
+              <!-- Counter Badges -->
+              <div class="grid grid-cols-3 gap-1.5 w-full sm:w-auto">
+                <div class="bg-rose-50 border border-rose-300 px-2.5 py-1 rounded-lg text-center">
+                  <span class="text-[9px] font-bold text-rose-700 block truncate">4 ACs</span>
+                  <span class="text-sm font-black text-rose-800">${spam4Count}</span>
+                </div>
+                <div class="bg-amber-50 border border-amber-300 px-2.5 py-1 rounded-lg text-center">
+                  <span class="text-[9px] font-bold text-amber-700 block truncate">3 ACs</span>
+                  <span class="text-sm font-black text-amber-800">${spam3Count}</span>
+                </div>
+                <div class="bg-slate-50 border border-slate-300 px-2.5 py-1 rounded-lg text-center">
+                  <span class="text-[9px] font-bold text-slate-600 block truncate">1-2 ACs</span>
+                  <span class="text-sm font-black text-slate-800">${spamLowCount}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Spam Domain Cards Grid -->
+            ${spamGroups.length > 0 ? `
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                ${spamGroups.map(g => buildDomainCardHtml(g)).join('')}
+              </div>
+            ` : `
+              <div class="py-6 text-center text-xs text-emerald-600 font-semibold bg-emerald-50/50 rounded-lg">
+                ✓ 0 Spam placements detected!
+              </div>
+            `}
+          </div>
+        `;
+        return;
+      }
+
+      domainCardsContainer.innerHTML = `
+        ${filterBannerHtml}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+          ${filteredUnits.map(unit => buildDomainCardHtml(unit)).join('')}
+        </div>
+      `;
+    }
+
+    function updateStats() {
+      const targetUnits = getUniqueDomainUnits(emailRecords, selectedNormalizedET);
+
+      const total = targetUnits.length;
+      const inbox = targetUnits.filter(u => u.hasInbox).length;
+      const spam = targetUnits.filter(u => u.hasSpam).length;
+      const mapped = targetUnits.filter(u => u.normalizedET !== 'UNMAPPED').length;
+
+      const inboxRate = total > 0 ? ((inbox / total) * 100).toFixed(1) : '0.0';
+      const spamRate = total > 0 ? ((spam / total) * 100).toFixed(1) : '0.0';
+
+      statTotal.textContent = total;
+      statInbox.textContent = inbox;
+      statRate.textContent = `${inboxRate}%`;
+      statSpam.textContent = spam;
+      statSpamRate.textContent = `${spamRate}%`;
+
+      barInboxRate.style.width = `${inboxRate}%`;
+      barSpamRate.style.width = `${spamRate}%`;
+
+      statMapped.textContent = `${mapped} Map`;
+    }
+
+    // --- 30s TIMER & SYNC LOOP ---
+    function updateCountdownUI() {
+      countdownNumber.textContent = countdown;
+      const offset = 88 - (88 * countdown) / 30;
+      countdownCircle.style.strokeDashoffset = offset;
+      countdownCircle.style.stroke = countdown <= 5 ? '#f59e0b' : '#6366f1';
+    }
+
+    function startTimer() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        if (!isAutoSyncEnabled) return;
+        countdown--;
+        if (countdown <= 0) {
+          countdown = 30;
+          runGlobalSync('TODAY');
+        }
+        updateCountdownUI();
+      }, 1000);
+    }
+
+    function setAutoSync(enable) {
+      isAutoSyncEnabled = enable;
+      if (isAutoSyncEnabled) {
+        timerBtnIcon.textContent = '⏸';
+        timerBtnText.textContent = 'Pause';
+        countdownStatusText.textContent = 'Next Sync';
+      } else {
+        timerBtnIcon.textContent = '▶';
+        timerBtnText.textContent = 'Resume';
+        countdownStatusText.textContent = 'Paused';
+      }
+    }
+
+    btnToggleTimer.addEventListener('click', () => {
+      setAutoSync(!isAutoSyncEnabled);
+      if (isAutoSyncEnabled && currentSyncScope === 'YESTERDAY') {
+        currentSyncScope = 'TODAY';
+        updateScopeUI();
+        runGlobalSync('TODAY');
+      }
+    });
+
+    btnSyncNow.addEventListener('click', () => {
+      currentSyncScope = 'TODAY';
+      setAutoSync(true);
+      countdown = 30;
+      updateCountdownUI();
+      runGlobalSync('TODAY');
+    });
+
+    btnSyncYesterday.addEventListener('click', () => {
+      setAutoSync(false);
+      showToast("Syncing yesterday's mail.");
+      runGlobalSync('YESTERDAY');
+    });
+
+    btnSyncSheetNow.addEventListener('click', () => syncJSG30Sheet());
+    btnClearLogs.addEventListener('click', () => { terminalLogsContainer.innerHTML = ''; });
+
+    btnOpenPasteModal.addEventListener('click', () => {
+      pasteTextarea.value = '';
+      pasteModal.classList.remove('hidden');
+    });
+
+    btnOpenAlertsModal.addEventListener('click', () => {
+      inputNtfyTopic.value = notificationConfig.ntfyTopic;
+      toggleBrowserPush.checked = notificationConfig.browserPush;
+      toggleMobilePush.checked = notificationConfig.mobilePush;
+      toggleAudioChime.checked = notificationConfig.audioChime;
+      alertsModal.classList.remove('hidden');
+    });
+
+    btnCloseAlertsModal.addEventListener('click', () => alertsModal.classList.add('hidden'));
+
+    btnSaveAlertsModal.addEventListener('click', () => {
+      notificationConfig.ntfyTopic = inputNtfyTopic.value.trim() || 'ayush_spam_alerts_seed';
+      notificationConfig.browserPush = toggleBrowserPush.checked;
+      notificationConfig.mobilePush = toggleMobilePush.checked;
+      notificationConfig.audioChime = toggleAudioChime.checked;
+
+      localStorage.setItem('ayush_ntfy_topic', notificationConfig.ntfyTopic);
+
+      if (notificationConfig.browserPush && 'Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+
+      alertsModal.classList.add('hidden');
+      showToast('Settings saved!');
+    });
+
+    btnTestBrowserNotification.addEventListener('click', async () => {
+      playSpamAudioChime();
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        const perm = await Notification.requestPermission();
+        if (perm !== 'granted') {
+          showToast('Browser notification permission needed');
+          return;
+        }
+      }
+      dispatchBrowserNotification('🚨 SPAM: JSG 30', 'Domain: example.com on ashwindelaycheck');
+      showInAppSpamPopup('JSG 30', 'example.com', 'ashwindelaycheck', 'Test Spam Alert');
+      showToast('Test popup triggered!');
+    });
+
+    btnTestNotification.addEventListener('click', () => {
+      playSpamAudioChime();
+      const topic = inputNtfyTopic.value.trim() || 'ayush_spam_alerts_seed';
+      dispatchMobileNtfyPush('🚨 TEST SPAM', 'Domain: example.com', 'urgent');
+      showToast(`Alert sent to ntfy.sh/${topic}`);
+    });
+
+    searchInput.addEventListener('input', renderRecords);
+    filterFolder.addEventListener('change', renderRecords);
+
+    btnExportCsv.addEventListener('click', () => {
+      const units = getUniqueDomainUnits(emailRecords, selectedNormalizedET);
+      if (units.length === 0) return;
+      const headers = ['ET Name', 'Domain', 'Folder Status', 'Inbox Accounts', 'Spam Accounts', 'Total Messages'];
+      const rows = units.map(u => [
+        `"${u.etName}"`,
+        `"${u.domain}"`,
+        `"${u.hasSpam ? 'HAS_SPAM' : u.hasInbox ? 'INBOX' : 'OTHER'}"`,
+        `"${Array.from(u.inboxAccounts).join(', ')}"`,
+        `"${Array.from(u.spamAccounts).join(', ')}"`,
+        `"${u.emails.length}"`
+      ]);
+      const csv = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      const uri = encodeURI(csv);
+      const link = document.createElement('a');
+      link.setAttribute('href', uri);
+      link.setAttribute('download', `${currentSyncScope}_JSG30_Report.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    });
+
+    btnClosePasteModal.addEventListener('click', () => pasteModal.classList.add('hidden'));
+    btnCancelPaste.addEventListener('click', () => pasteModal.classList.add('hidden'));
+    btnApplyPaste.addEventListener('click', () => {
+      const text = pasteTextarea.value;
+      const parsed = parseJSG30CsvData(text);
+      if (parsed.length > 0) {
+        domainLookupMap.clear();
+        parsed.forEach(p => domainLookupMap.set(p.domain, { etName: p.etName, dateStr: p.dateStr }));
+        renderJSG30Table(parsed);
+        refreshAllRecordEtNames();
+        pasteModal.classList.add('hidden');
+        pasteTextarea.value = '';
+        showToast(`Loaded ${parsed.length} JSG 30 mappings`);
+      } else {
+        showToast("No valid rows parsed from pasted data");
+      }
+    });
+
+    // --- INITIALIZATION ---
+    window.addEventListener('load', () => {
+      initSnowBackground();
+      setupPwa();
+      updateLockUI();
+      checkBrowserNotificationPermission();
+      startTimer();
+      syncJSG30Sheet().then(() => {
+        runGlobalSync('TODAY');
+      });
+    });
+  </script>
+</body>
+</html>
