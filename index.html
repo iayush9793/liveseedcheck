@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>JSG 30 | Live Inbox &amp; Spam Monitor</title>
+  <title>JSG 30 | Inbox &amp; Spam Monitor</title>
   <meta name="theme-color" content="#4f46e5">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,11 +16,9 @@
     ::-webkit-scrollbar-track { background: #f1f5f9; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white antialiased">
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col antialiased">
 
   <!-- Header -->
   <header class="border-b border-slate-200 bg-white sticky top-0 z-40 px-4 sm:px-6 py-3 shadow-xs">
@@ -31,19 +29,19 @@
         </div>
         <div>
           <h1 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">JSG 30 Inbox Monitor</h1>
-          <div class="flex items-center gap-2 mt-0.5">
-            <span id="badge-active-scope" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
-              📅 Date: Today
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span id="badge-target-date" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-100 text-indigo-700 border border-indigo-200">
+              📅 Target Date: --
             </span>
-            <span id="badge-sheet-status" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
-              Sheet Loaded
+            <span id="badge-sheet-status" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+              Initializing...
             </span>
           </div>
         </div>
       </div>
 
       <!-- Controls -->
-      <div class="flex items-center gap-2 self-end sm:self-auto">
+      <div class="flex items-center gap-2 self-end sm:self-auto flex-wrap">
         <!-- 30s Countdown timer -->
         <div class="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700">
           <span>⏱ Next Sync:</span>
@@ -60,7 +58,7 @@
           <svg id="sync-spinner" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"></path>
           </svg>
-          <span>Sync Now</span>
+          <span id="sync-btn-text">Sync Now</span>
         </button>
       </div>
     </div>
@@ -73,7 +71,7 @@
         <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider block">Target Domains</span>
         <div class="mt-1 flex items-baseline justify-between">
           <span id="stat-total" class="text-2xl font-black text-slate-900">0</span>
-          <span class="text-[11px] text-slate-400">In Sheet</span>
+          <span class="text-[11px] text-slate-400">Sheet (Col J)</span>
         </div>
       </div>
 
@@ -97,7 +95,7 @@
         <span class="text-xs font-semibold text-rose-700 uppercase tracking-wider block">Has Spam</span>
         <div class="mt-1 flex items-baseline justify-between">
           <span id="stat-spam" class="text-2xl font-black text-rose-600">0</span>
-          <span class="text-[11px] text-rose-700 font-bold">⚠️️ Warning</span>
+          <span class="text-[11px] text-rose-700 font-bold">⚠️ Warning</span>
         </div>
       </div>
     </div>
@@ -108,18 +106,29 @@
         <input
           id="search-input"
           type="text"
-          placeholder="Search extracted domain (e.g. quantumhflow.co.in)..."
+          placeholder="Filter extracted domain..."
           class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
         />
       </div>
       <div class="w-full sm:w-auto">
         <select id="filter-status" class="w-full sm:w-auto bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 font-medium focus:outline-none">
           <option value="ALL">All Statuses</option>
-          <option value="HAS_SPAM">⚠️ Spam Detected</option>
+          <option value="HAS_SPAM">⚠️ Spam Placed</option>
           <option value="ALL_INBOX">✓ 100% Inboxed (4/4)</option>
           <option value="PARTIAL_INBOX">Partial Inbox (1-3)</option>
           <option value="NO_MAIL">No Mail Yet (0/4)</option>
         </select>
+      </div>
+    </div>
+
+    <!-- Diagnostic Logs Drawer (Collapsible) -->
+    <div class="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+      <div class="px-3 py-2 bg-slate-100 flex items-center justify-between border-b border-slate-200">
+        <span class="text-[11px] font-bold text-slate-700">Sync Status &amp; Debug Info</span>
+        <span id="log-time" class="text-[10px] text-slate-500 font-mono">Ready</span>
+      </div>
+      <div id="debug-log" class="p-2.5 font-mono text-[11px] text-slate-700 bg-slate-50 max-h-24 overflow-y-auto">
+        Initializing...
       </div>
     </div>
 
@@ -144,67 +153,63 @@
     ];
 
     let currentScope = 'TODAY'; // 'TODAY' or 'YESTERDAY'
-    let sheetDomainsList = []; // List of { domain, dateStr, rawDomain } extracted from sheet for current scope
-    let emailRecords = []; // Fetched emails from seeds
+    let sheetDomainsList = [];
+    let emailRecords = [];
     let timerSeconds = 30;
     let timerInterval = null;
     let isSyncing = false;
     const tokenCache = {};
 
-    // --- DATE PARSER & HELPERS ---
+    function log(msg) {
+      const el = document.getElementById('debug-log');
+      const time = new Date().toLocaleTimeString();
+      el.innerHTML = `[${time}] ${msg}<br>` + el.innerHTML;
+      document.getElementById('log-time').textContent = time;
+    }
+
+    // --- DOMAIN EXTRACTION HELPER ---
     function cleanDomain(val) {
       if (!val) return '';
       let str = String(val).trim().toLowerCase();
-      // Handle email string (e.g. news@quantumhflow.co.in)
+      // Remove mailto:, quotes, extra spaces
+      str = str.replace(/mailto:/gi, '').replace(/["']/g, '');
+      // If full email address like service@netrdockfeed.co.in -> extract netrdockfeed.co.in
       if (str.includes('@')) {
         const parts = str.split('@');
         str = parts[parts.length - 1];
       }
-      return str.replace(/[^a-z0-9.-]/g, '');
+      return str.trim();
     }
 
-    function parseRowDate(dateStr) {
-      if (!dateStr) return null;
-      const clean = dateStr.trim();
-      let d, m, y;
-
-      // Handle DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY
-      if (/^\d{1,2}[-/.]\d{1,2}[-/.]\d{4}$/.test(clean)) {
-        const parts = clean.split(/[-/.]/);
-        d = parseInt(parts[0], 10);
-        m = parseInt(parts[1], 10) - 1;
-        y = parseInt(parts[2], 10);
-        return new Date(y, m, d);
+    // Return target date string formatted as DD-MM-YYYY
+    function getFormattedScopeDate(scope) {
+      const d = new Date();
+      if (scope === 'YESTERDAY') {
+        d.setDate(d.getDate() - 1);
       }
-      // Handle YYYY-MM-DD or YYYY/MM/DD
-      if (/^\d{4}[-/.]\d{1,2}[-/.]\d{1,2}$/.test(clean)) {
-        const parts = clean.split(/[-/.]/);
-        y = parseInt(parts[0], 10);
-        m = parseInt(parts[1], 10) - 1;
-        d = parseInt(parts[2], 10);
-        return new Date(y, m, d);
-      }
-      const parsed = new Date(clean);
-      return isNaN(parsed.getTime()) ? null : parsed;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}-${month}-${year}`;
     }
 
-    function isDateMatchingTargetScope(dateStr, targetScope) {
-      const rowDate = parseRowDate(dateStr);
-      if (!rowDate) return false;
-
-      const targetDate = new Date();
-      if (targetScope === 'YESTERDAY') {
-        targetDate.setDate(targetDate.getDate() - 1);
+    // Normalize date strings from sheet: handles DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD
+    function normalizeDate(rawStr) {
+      if (!rawStr) return '';
+      const clean = rawStr.trim().replace(/\//g, '-');
+      const parts = clean.split('-');
+      if (parts.length === 3) {
+        // If YYYY-MM-DD
+        if (parts[0].length === 4) {
+          return `${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[0]}`;
+        }
+        // If DD-MM-YYYY
+        return `${parts[0].padStart(2, '0')}-${parts[1].padStart(2, '0')}-${parts[2]}`;
       }
-
-      return (
-        rowDate.getDate() === targetDate.getDate() &&
-        rowDate.getMonth() === targetDate.getMonth() &&
-        rowDate.getFullYear() === targetDate.getFullYear()
-      );
+      return clean;
     }
 
-    // --- CSV SPLITTER ---
+    // Standard CSV line parser with quote handling
     function parseCsvLine(text) {
       const result = [];
       let cur = '';
@@ -224,71 +229,84 @@
       return result;
     }
 
-    // --- FETCH JSG 30 SHEET ---
+    // --- FETCH & PARSE JSG 30 SHEET ---
     async function loadTargetDomainsFromSheet(scope) {
-      try {
-        const endpoints = [
-          JSG_30_CSV_URL,
-          `https://corsproxy.io/?url=${encodeURIComponent(JSG_30_CSV_URL)}`,
-          `https://api.allorigins.win/raw?url=${encodeURIComponent(JSG_30_CSV_URL)}`
-        ];
+      const targetDateFormatted = getFormattedScopeDate(scope);
+      document.getElementById('badge-target-date').textContent = `📅 Target Date: ${targetDateFormatted}`;
+      log(`Fetching sheet for Date: <b>${targetDateFormatted}</b>...`);
 
-        let rawCsv = '';
-        for (const ep of endpoints) {
-          try {
-            const resp = await fetch(ep, { cache: 'no-store' });
-            if (resp.ok) {
-              const text = await resp.text();
-              if (text && !text.includes('<!DOCTYPE html>') && text.length > 20) {
-                rawCsv = text;
-                break;
-              }
-            }
-          } catch (e) {}
-        }
+      const endpoints = [
+        JSG_30_CSV_URL,
+        `https://corsproxy.io/?url=${encodeURIComponent(JSG_30_CSV_URL)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(JSG_30_CSV_URL)}`
+      ];
 
-        if (!rawCsv) return [];
-
-        const lines = rawCsv.split(/\r?\n/).filter(l => l.trim().length > 0);
-        if (lines.length < 2) return [];
-
-        const headerCols = parseCsvLine(lines[0]).map(h => h.trim().toLowerCase());
-        
-        // Find "Domain" and "DATE" columns dynamically
-        let domainIdx = headerCols.findIndex(h => h === 'domain' || h.includes('domain'));
-        let dateIdx = headerCols.findIndex(h => h === 'date' || h.includes('date'));
-
-        if (domainIdx === -1) domainIdx = 0;
-        if (dateIdx === -1) dateIdx = 1;
-
-        const results = [];
-        const seen = new Set();
-
-        for (let i = 1; i < lines.length; i++) {
-          const cols = parseCsvLine(lines[i]);
-          const rawDomainVal = (cols[domainIdx] || '').trim();
-          const dateVal = (cols[dateIdx] || '').trim();
-          const cleanDom = cleanDomain(rawDomainVal);
-
-          if (cleanDom && isDateMatchingTargetScope(dateVal, scope)) {
-            if (!seen.has(cleanDom)) {
-              seen.add(cleanDom);
-              results.push({
-                domain: cleanDom,
-                rawDomain: rawDomainVal,
-                dateStr: dateVal
-              });
+      let rawCsv = '';
+      for (const ep of endpoints) {
+        try {
+          const resp = await fetch(ep, { cache: 'no-store' });
+          if (resp.ok) {
+            const txt = await resp.text();
+            if (txt && !txt.includes('<!DOCTYPE html>') && txt.length > 50) {
+              rawCsv = txt;
+              break;
             }
           }
-        }
-        return results;
-      } catch (err) {
-        console.error("Sheet loading error:", err);
+        } catch (e) {}
+      }
+
+      if (!rawCsv) {
+        log(`<span class="text-rose-600 font-bold">Failed to load CSV from Google Sheets endpoints.</span>`);
         return [];
       }
+
+      const lines = rawCsv.split(/\r?\n/).filter(l => l.trim().length > 0);
+      if (lines.length < 2) return [];
+
+      const header = parseCsvLine(lines[0]).map(h => h.trim().toUpperCase());
+      
+      // Column A is index 0 (DATE), Column J is index 9 (Domain)
+      let dateIdx = header.findIndex(h => h === 'DATE' || h.includes('DATE'));
+      let domainIdx = header.findIndex(h => h === 'DOMAIN' || h.includes('DOMAIN'));
+
+      // Strict fallback based on your actual sheet layout: Col A=0, Col J=9
+      if (dateIdx === -1) dateIdx = 0;
+      if (domainIdx === -1) domainIdx = 9;
+
+      log(`Detected Headers: DATE at Column [${dateIdx}] | Domain at Column [${domainIdx}]. Total rows: ${lines.length}`);
+
+      const results = [];
+      const seen = new Set();
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        if (cols.length <= dateIdx || cols.length <= domainIdx) continue;
+
+        const rowDateRaw = cols[dateIdx] || '';
+        const rowDomainRaw = cols[domainIdx] || '';
+
+        const rowDateNorm = normalizeDate(rowDateRaw);
+        const cleanDom = cleanDomain(rowDomainRaw);
+
+        // Filter: Exactly match target scope date (Today or Yesterday)
+        if (rowDateNorm === targetDateFormatted && cleanDom && cleanDom !== 'domain') {
+          if (!seen.has(cleanDom)) {
+            seen.add(cleanDom);
+            results.push({
+              domain: cleanDom,
+              raw: rowDomainRaw,
+              dateStr: rowDateRaw,
+              campaign: cols[6] || 'JSG 30' // Column G: Campaign Name if present
+            });
+          }
+        }
+      }
+
+      log(`<span class="text-emerald-700 font-bold">Extracted ${results.length} domains for ${targetDateFormatted}</span>`);
+      return results;
     }
 
-    // --- GMAIL REFRESH TOKEN ACCESS ---
+    // --- GMAIL AUTH & FETCH ---
     async function getAccessToken(acc) {
       const now = Date.now();
       if (tokenCache[acc.id] && tokenCache[acc.id].expiry > now + 60000) {
@@ -330,14 +348,13 @@
       return null;
     }
 
-    function formatDateYMD(d) {
+    function formatDateForGmail(d) {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       return `${y}/${m}/${day}`;
     }
 
-    // --- FETCH GMAIL EMAILS ---
     async function syncMailbox(acc, scope) {
       const token = await getAccessToken(acc);
       if (!token) return [];
@@ -347,10 +364,10 @@
       if (scope === 'YESTERDAY') {
         const twoDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        query = `after:${formatDateYMD(twoDaysAgo)} before:${formatDateYMD(today)} (in:inbox OR in:spam)`;
+        query = `after:${formatDateForGmail(twoDaysAgo)} before:${formatDateForGmail(today)} (in:inbox OR in:spam)`;
       } else {
         const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        query = `after:${formatDateYMD(yesterday)} (in:inbox OR in:spam)`;
+        query = `after:${formatDateForGmail(yesterday)} (in:inbox OR in:spam)`;
       }
 
       try {
@@ -366,7 +383,7 @@
         const listData = await listResp.json();
         const messages = listData.messages || [];
 
-        const details = await Promise.all(messages.slice(0, 35).map(async (m) => {
+        const details = await Promise.all(messages.slice(0, 40).map(async (m) => {
           try {
             const dUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`;
             let r = null;
@@ -381,7 +398,7 @@
           }
         }));
 
-        const parsedRecords = [];
+        const records = [];
         details.forEach(msg => {
           if (!msg) return;
           const labels = msg.labelIds || [];
@@ -390,7 +407,7 @@
           const subject = msg.payload?.headers?.find(h => h.name.toLowerCase() === 'subject')?.value || '(No Subject)';
           const dom = cleanDomain(fromHeader);
 
-          parsedRecords.push({
+          records.push({
             id: msg.id,
             accountName: acc.name,
             folder: folder,
@@ -399,28 +416,33 @@
             subject: subject
           });
         });
-        return parsedRecords;
+        return records;
       } catch (err) {
         return [];
       }
     }
 
-    // --- COMBINE SHEET DOMAINS & INBOX STATUS ---
+    // --- MASTER SYNC ENGINE ---
     async function runMasterSync() {
       if (isSyncing) return;
       isSyncing = true;
       document.getElementById('sync-spinner').classList.add('animate-spin');
+      document.getElementById('sync-btn-text').textContent = 'Syncing...';
 
-      // Step 1: Extract current/yesterday domains from JSG 30 Sheet
+      // 1. Extract Target Domains from Sheet
       sheetDomainsList = await loadTargetDomainsFromSheet(currentScope);
-      document.getElementById('badge-sheet-status').textContent = `${sheetDomainsList.length} Domains Loaded (${currentScope})`;
+      document.getElementById('badge-sheet-status').textContent = `${sheetDomainsList.length} Domains Loaded`;
+      document.getElementById('badge-sheet-status').className = "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200";
 
-      // Step 2: Fetch Seed Mailboxes
+      // 2. Poll the Seed Accounts
+      log(`Scanning 4 Seed Mailboxes for matching incoming mail...`);
       const accResults = await Promise.all(ACCOUNTS.map(acc => syncMailbox(acc, currentScope)));
       emailRecords = accResults.flat();
+      log(`Found ${emailRecords.length} total messages in seeds across INBOX & SPAM.`);
 
       isSyncing = false;
       document.getElementById('sync-spinner').classList.remove('animate-spin');
+      document.getElementById('sync-btn-text').textContent = 'Sync Now';
       renderDashboard();
     }
 
@@ -430,7 +452,6 @@
       const statusFilter = document.getElementById('filter-status').value;
       const container = document.getElementById('domains-container');
 
-      // Map email records by domain
       const emailDomainMap = new Map();
       emailRecords.forEach(em => {
         if (!em.domain) return;
@@ -440,7 +461,6 @@
         emailDomainMap.get(em.domain).push(em);
       });
 
-      // Assemble card objects for each domain from sheet
       const cardsData = sheetDomainsList.map(item => {
         const receivedEmails = emailDomainMap.get(item.domain) || [];
         const inboxes = new Set();
@@ -453,8 +473,9 @@
 
         return {
           domain: item.domain,
-          rawDomain: item.rawDomain,
+          rawDomain: item.raw,
           dateStr: item.dateStr,
+          campaign: item.campaign,
           inboxAccounts: Array.from(inboxes),
           spamAccounts: Array.from(spams),
           hasSpam: spams.size > 0,
@@ -463,7 +484,6 @@
         };
       });
 
-      // Filter
       const filtered = cardsData.filter(c => {
         if (q && !c.domain.includes(q) && !c.rawDomain.toLowerCase().includes(q)) return false;
         if (statusFilter === 'HAS_SPAM' && !c.hasSpam) return false;
@@ -473,7 +493,6 @@
         return true;
       });
 
-      // Stats
       document.getElementById('stat-total').textContent = sheetDomainsList.length;
       document.getElementById('stat-all-inbox').textContent = cardsData.filter(c => c.inboxCount === 4).length;
       document.getElementById('stat-partial-inbox').textContent = cardsData.filter(c => c.inboxCount >= 1 && c.inboxCount < 4).length;
@@ -482,7 +501,7 @@
       if (filtered.length === 0) {
         container.innerHTML = `
           <div class="bg-white border border-slate-200 rounded-xl p-10 text-center text-slate-500 text-xs">
-            No matching domains found for <strong>${currentScope}</strong>.
+            No domains found matching <strong>${getFormattedScopeDate(currentScope)}</strong>. Check Debug Info above.
           </div>
         `;
         return;
@@ -507,8 +526,9 @@
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="font-mono text-sm font-bold text-slate-900">${escapeHtml(c.domain)}</span>
                     <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">${escapeHtml(c.dateStr)}</span>
+                    <span class="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-1.5 py-0.5 rounded">${escapeHtml(c.campaign)}</span>
                   </div>
-                  <div class="text-[10px] text-slate-400 font-mono">From Heading: ${escapeHtml(c.rawDomain)}</div>
+                  <div class="text-[10px] text-slate-400 font-mono">Row Value: ${escapeHtml(c.rawDomain)}</div>
                 </div>
               </div>
 
@@ -559,7 +579,7 @@
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // --- EVENT HANDLERS & 30s TIMER ---
+    // --- CONTROLS & TIMERS ---
     document.getElementById('btn-sync-now').addEventListener('click', () => {
       timerSeconds = 30;
       runMasterSync();
@@ -568,11 +588,9 @@
     document.getElementById('btn-toggle-scope').addEventListener('click', () => {
       if (currentScope === 'TODAY') {
         currentScope = 'YESTERDAY';
-        document.getElementById('badge-active-scope').textContent = '📅 Date: Yesterday';
         document.getElementById('btn-toggle-scope').textContent = 'Switch to Today';
       } else {
         currentScope = 'TODAY';
-        document.getElementById('badge-active-scope').textContent = '📅 Date: Today';
         document.getElementById('btn-toggle-scope').textContent = 'Switch to Yesterday';
       }
       timerSeconds = 30;
@@ -594,7 +612,6 @@
       }, 1000);
     }
 
-    // --- BOOTSTRAP ---
     window.addEventListener('load', () => {
       startTimerLoop();
       runMasterSync();
